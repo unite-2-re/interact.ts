@@ -1,5 +1,5 @@
 {
-    "name": "interact-ts",
+    "name": "@unite-2/interact-ts",
     "description": "Interaction Web library",
     "version": "1.0.0alpha",
     "private": false,
