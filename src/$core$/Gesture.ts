@@ -565,7 +565,6 @@ export default class AxGesture {
         }
 
         //
-        const handler = options.handler || this.#holder;
         const action: any = {
             pointerId: -1,
             timer: null,
@@ -671,7 +670,7 @@ export default class AxGesture {
             "pointerdown",
             (ev) => {
                 if (
-                    ev.target == handler &&
+                    (this.#holder.contains(ev.target as HTMLElement) && (options.handler ? (ev.target as HTMLElement).matches(options.handler) : false) || (ev.target == this.#holder)) &&
                     action.pointerId < 0 &&
                     (options.anyPointer || ev.pointerType == "touch")
                 ) {
