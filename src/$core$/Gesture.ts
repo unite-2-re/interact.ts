@@ -210,6 +210,10 @@ export default class AxGesture {
                         time: performance.now(),
                         speed: 0,
                     });
+
+                    // stronger policy now...
+                    // @ts-ignore
+                    ev.target?.setPointerCapture?.(ev.pointerId);
                 }
             });
 
@@ -374,6 +378,9 @@ export default class AxGesture {
                     propertyName: "resize",
                     shifting: this.limitResize(starting, starting, this.#holder, this.#holder.parentNode),
                 });
+
+                // @ts-ignore
+                ev.target?.setPointerCapture?.(ev.pointerId);
             }
         });
 
@@ -455,6 +462,10 @@ export default class AxGesture {
                 //
                 const unListenShift = (evp) => {
                     if (evp.pointerId == ev.pointerId) {
+                        // @ts-ignore
+                        ev.target?.releasePointerCapture?.(ev.pointerId);
+
+                        //
                         document.removeEventListener("pointermove"  , shiftEv);
                         document.removeEventListener("pointerup"    , unListenShift);
                         document.removeEventListener("pointercancel", unListenShift);
@@ -465,6 +476,9 @@ export default class AxGesture {
                 document.addEventListener("pointermove"  , shiftEv);
                 document.addEventListener("pointerup"    , unListenShift);
                 document.addEventListener("pointercancel", unListenShift);
+
+                // @ts-ignore
+                ev.target?.setPointerCapture?.(ev.pointerId);
             }
         });
 
@@ -544,6 +558,9 @@ export default class AxGesture {
                 }
                 action.timer = null;
                 action.pointerId = -1;
+
+                // @ts-ignore
+                ev.target?.releasePointerCapture?.(ev.pointerId);
             }
         }
 

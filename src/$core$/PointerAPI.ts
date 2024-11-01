@@ -78,7 +78,6 @@ document.documentElement.addEventListener(
     "pointerdown",
     (ev) => {
         if (ev.target == document.documentElement) {
-
             //
             const np: PointerObject = {
                 id: ev.pointerId,
@@ -358,6 +357,9 @@ export const releasePointer = (ev) => {
 
         //
         pointerMap.delete(ev.pointerId);
+
+        // @ts-ignore
+        ev?.target?.releasePointerCapture?.(ev.pointerId);
     }
 };
 
@@ -409,5 +411,8 @@ export const grabForDrag = (
 
         //
         element?.dispatchEvent?.(nev);
+
+        // @ts-ignore
+        ev?.target?.setPointerCapture?.(ev.pointerId);
     }
 };
