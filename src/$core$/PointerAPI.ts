@@ -156,14 +156,15 @@ CSS?.registerProperty?.({
     initialValue: `0`,
 });
 
-
 //
-const setProperty = (target, name, value, importance = "")=>{
+export const setProperty = (target, name, value, importance = "")=>{
     if ("attributeStyleMap" in target) {
         const raw = target.attributeStyleMap.get(name);
         const prop = raw?.[0] ?? raw?.value;
         if (parseFloat(prop) != value && prop != value || prop == null) {
-            target.attributeStyleMap.set(name, value);
+            //if (raw?.[0] != null) { raw[0] = value; } else
+            if (raw?.value != null) { raw.value = value; } else
+            { target.attributeStyleMap.set(name, value); };
         }
     } else {
         const prop = target?.style?.getPropertyValue?.(name);
@@ -302,19 +303,22 @@ export const releasePointer = (ev) => {
     if (exists) {
         //
         const preventClick = (e: PointerEvent | MouseEvent) => {
-            e.stopImmediatePropagation();
-            e.stopPropagation();
-            e.preventDefault();
-
-            //
-            document.documentElement.removeEventListener("click", ...doc);
-            document.documentElement.removeEventListener("contextmenu", ...doc);
-
             // @ts-ignore
-            ev?.target?.removeEventListener?.("click", ...emt);
+            if (e?.pointerId == ev.pointerId) {
+                e.stopImmediatePropagation();
+                e.stopPropagation();
+                e.preventDefault();
 
-            // @ts-ignore
-            ev?.target?.removeEventListener?.("contextmenu", ...emt);
+                //
+                document.documentElement.removeEventListener("click", ...doc);
+                document.documentElement.removeEventListener("contextmenu", ...doc);
+
+                // @ts-ignore
+                ev?.target?.removeEventListener?.("click", ...emt);
+
+                // @ts-ignore
+                ev?.target?.removeEventListener?.("contextmenu", ...emt);
+            }
         };
 
         //
@@ -323,6 +327,8 @@ export const releasePointer = (ev) => {
 
         //
         if ((exists.holding?.length || 0) > 0) {
+            //ev.stopImmediatePropagation();
+            //ev.stopPropagation();
             ev.preventDefault();
 
             //
@@ -366,6 +372,7 @@ export const releasePointer = (ev) => {
         });
 
         //
+        exists.holding = [];
         pointerMap.delete(ev.pointerId);
 
         // @ts-ignore
