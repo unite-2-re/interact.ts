@@ -381,12 +381,8 @@ export const releasePointer = (ev) => {
 };
 
 //
-document.documentElement.addEventListener("pointercancel", releasePointer, {
-    capture: true,
-});
-document.documentElement.addEventListener("pointerup", releasePointer, {
-    capture: true,
-});
+document.documentElement.addEventListener("pointercancel", releasePointer, {capture: true,});
+document.documentElement.addEventListener("pointerup"    , releasePointer, {capture: true,});
 
 //
 export const grabForDrag = (
@@ -402,19 +398,20 @@ export const grabForDrag = (
         exists.event = ev;
 
         //
-        const hm =
-            (exists.holding || []).find(
-                (hm) =>
-                    hm.element?.deref?.() == element &&
-                    hm.propertyName == propertyName
-            ) || {};
-        (exists.holding || []).push(
-            Object.assign(hm || {}, {
-                propertyName,
-                element: new WeakRef(element),
-                shifting: [...(hm?.modified || hm?.shifting || shifting || [])],
-            })
+        const ex = (exists.holding || []).find((hm) =>
+            hm.element?.deref?.() == element &&
+            hm.propertyName == propertyName
         );
+
+        //
+        const prop: any = Object.assign(ex || {}, {
+            propertyName,
+            element: new WeakRef(element),
+            shifting: [...(ex?.modified || ex?.shifting || shifting || [])],
+        })
+
+        //
+        if (!ex) (exists.holding || []).push(prop);
 
         // pls, assign "ev.detail.holding.shifting" to initial value (f.e. "ev.detail.holding.modified")
         // note about "ev.detail.holding.element is WeakRef, so use ".deref()"
@@ -422,14 +419,17 @@ export const grabForDrag = (
             bubbles: true,
             detail: {
                 pointer: exists,
-                holding: hm,
+                holding: prop,
             },
         });
 
         //
         element?.dispatchEvent?.(nev);
 
-        // @ts-ignore
-        ev?.target?.setPointerCapture?.(ev.pointerId);
+        //
+        if (ev?.pointerId != null && ev?.pointerId >= 0) {
+            // @ts-ignore
+            ev?.target?.setPointerCapture?.(ev?.pointerId);
+        }
     }
 };
