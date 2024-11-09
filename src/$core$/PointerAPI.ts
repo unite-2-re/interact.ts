@@ -305,6 +305,16 @@ export const releasePointer = (ev) => {
             e.stopImmediatePropagation();
             e.stopPropagation();
             e.preventDefault();
+
+            //
+            document.documentElement.removeEventListener("click", ...doc);
+            document.documentElement.removeEventListener("contextmenu", ...doc);
+
+            // @ts-ignore
+            ev?.target?.removeEventListener?.("click", ...emt);
+
+            // @ts-ignore
+            ev?.target?.removeEventListener?.("contextmenu", ...emt);
         };
 
         //
@@ -313,13 +323,13 @@ export const releasePointer = (ev) => {
 
         //
         if ((exists.holding?.length || 0) > 0) {
-            ev.stopImmediatePropagation();
-            ev.stopPropagation();
             ev.preventDefault();
 
             //
-            document.documentElement.addEventListener("click", ...doc);
-            document.documentElement.addEventListener("contextmenu", ...doc);
+            {
+                document.documentElement.addEventListener("click", ...doc);
+                document.documentElement.addEventListener("contextmenu", ...doc);
+            }
 
             //
             setTimeout(() => {

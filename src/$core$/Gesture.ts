@@ -370,18 +370,16 @@ export default class AxGesture {
         };
 
         //
-        document.documentElement.addEventListener("pointerdown", (ev) => {
-            if (ev.target == handler) {
-                status.pointerId = ev.pointerId; this.#updateSize();
-                const starting = [this.propGet("--resize-x") || 0, this.propGet("--resize-y") || 0];
-                grabForDrag(this.#holder, ev, {
-                    propertyName: "resize",
-                    shifting: this.limitResize(starting, starting, this.#holder, this.#holder.parentNode),
-                });
+        handler.addEventListener("pointerdown", (ev) => {
+            status.pointerId = ev.pointerId; this.#updateSize();
+            const starting = [this.propGet("--resize-x") || 0, this.propGet("--resize-y") || 0];
+            grabForDrag(this.#holder, ev, {
+                propertyName: "resize",
+                shifting: this.limitResize(starting, starting, this.#holder, this.#holder.parentNode),
+            });
 
-                // @ts-ignore
-                ev.target?.setPointerCapture?.(ev.pointerId);
-            }
+            // @ts-ignore
+            ev.target?.setPointerCapture?.(ev.pointerId);
         });
 
         //
@@ -424,6 +422,7 @@ export default class AxGesture {
             (ev) => {
                 const dt = ev.detail;
                 if (dt.holding.propertyName == "resize") {
+                    status.pointerId = -1;
                     //this.#resizeMute = false;
                 }
             },
@@ -442,45 +441,59 @@ export default class AxGesture {
         //this.#dragStatus = status;
 
         //
-        document.documentElement.addEventListener("pointerdown", (ev) => {
-            if (ev.target == handler) {
-                status.pointerId = ev.pointerId;
+        handler.addEventListener("pointerdown", (ev) => {
+            status.pointerId = ev.pointerId;
 
-                //
-                const shiftEv = (evp) => {
-                    if (evp.pointerId == ev.pointerId) {
-                        unListenShift(evp); this.#updateSize();
-                        //const box = this.#holder.getBoundingClientRect();
-                        const starting = [(this.#holder.offsetLeft || 0) * zoomOf(), (this.#holder.offsetTop || 0) * zoomOf()];//[this.propGet("--drag-x") || 0, this.propGet("--drag-y") || 0];
-                        grabForDrag(this.#holder, ev, {
-                            propertyName: "drag",
-                            shifting: this.limitDrag(starting, starting, this.#holder, this.#holder.parentNode),
-                        });
-                    }
-                };
+            //
+            const shiftEv = (evp) => {
+                if (evp.pointerId == ev.pointerId) {
+                    unListenShift(evp);
+                }
 
-                //
-                const unListenShift = (evp) => {
-                    if (evp.pointerId == ev.pointerId) {
-                        // @ts-ignore
-                        ev.target?.releasePointerCapture?.(ev.pointerId);
+                {   //
+                    this.#updateSize();
+                    //const box = this.#holder.getBoundingClientRect();
+                    const starting = [(this.#holder.offsetLeft || 0) * zoomOf(), (this.#holder.offsetTop || 0) * zoomOf()];//[this.propGet("--drag-x") || 0, this.propGet("--drag-y") || 0];
 
-                        //
-                        document.removeEventListener("pointermove"  , shiftEv);
-                        document.removeEventListener("pointerup"    , unListenShift);
-                        document.removeEventListener("pointercancel", unListenShift);
-                    }
-                };
+                    //
+                    grabForDrag(this.#holder, ev, {
+                        propertyName: "drag",
+                        shifting: this.limitDrag(starting, starting, this.#holder, this.#holder.parentNode),
+                    });
+                }
+            };
 
-                //
-                document.addEventListener("pointermove"  , shiftEv);
-                document.addEventListener("pointerup"    , unListenShift);
-                document.addEventListener("pointercancel", unListenShift);
+            //
+            const unListenShift = (evp) => {
+                if (evp.pointerId == ev.pointerId) {
+                    document.documentElement.removeEventListener("pointermove"  , shiftEv);
+                    document.documentElement.removeEventListener("pointerup"    , unListenShift);
+                    document.documentElement.removeEventListener("pointercancel", unListenShift);
+                }
+            };
 
-                // @ts-ignore
-                ev.target?.setPointerCapture?.(ev.pointerId);
-            }
+            //
+            document.documentElement.addEventListener("pointermove"  , shiftEv);
+            document.documentElement.addEventListener("pointerup"    , unListenShift);
+            document.documentElement.addEventListener("pointercancel", unListenShift);
+
+            // @ts-ignore
+            //ev.target?.setPointerCapture?.(ev.pointerId);
         });
+
+        //
+        const cancelShift = (ev)=>{
+            //
+            if (ev.type == "pointercancel" || ev.type == "pointerup") {
+                // @ts-ignore
+                //ev.target?.releasePointerCapture?.(ev.pointerId);
+                status.pointerId = -1;
+            }
+        }
+
+        //
+        document.documentElement.addEventListener("pointerup"    , cancelShift);
+        document.documentElement.addEventListener("pointercancel", cancelShift);
 
         //
         this.#holder.addEventListener(
@@ -807,3 +820,6 @@ export default class AxGesture {
         );
     }
 }
+
+//
+export { AxGesture };
