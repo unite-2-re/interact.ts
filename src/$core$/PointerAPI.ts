@@ -124,8 +124,18 @@ document.documentElement.addEventListener(
 );
 
 
+
 //
-CSS?.registerProperty?.({
+const regProp = (options: any)=>{
+    try {
+        CSS?.registerProperty?.(options);
+    } catch(e) {
+        console.warn(e);
+    };
+};
+
+//
+regProp?.({
     name: "--resize-x",
     syntax: "<number>",
     inherits: true,
@@ -133,7 +143,7 @@ CSS?.registerProperty?.({
 });
 
 //
-CSS?.registerProperty?.({
+regProp?.({
     name: "--resize-y",
     syntax: "<number>",
     inherits: true,
@@ -141,7 +151,7 @@ CSS?.registerProperty?.({
 });
 
 //
-CSS?.registerProperty?.({
+regProp?.({
     name: "--drag-x",
     syntax: "<number>",
     inherits: true,
@@ -149,7 +159,7 @@ CSS?.registerProperty?.({
 });
 
 //
-CSS?.registerProperty?.({
+regProp?.({
     name: "--drag-y",
     syntax: "<number>",
     inherits: true,
