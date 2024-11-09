@@ -69,16 +69,16 @@ const doContentObserve = (element) => {
                 if (entry.contentBoxSize) {
                     const contentBoxSize = entry.contentBoxSize[0];
                     if (contentBoxSize) {
-                        element[contentBoxWidth]  = contentBoxSize.inlineSize * zoomOf();
-                        element[contentBoxHeight] = contentBoxSize.blockSize * zoomOf();
+                        element[contentBoxWidth]  = (contentBoxSize.inlineSize + (getPxValue(element, "padding-left") + getPxValue(element, "padding-right" ))) * zoomOf();
+                        element[contentBoxHeight] = (contentBoxSize.blockSize  + (getPxValue(element, "padding-top")  + getPxValue(element, "padding-bottom"))) * zoomOf();
                     }
                 }
             }
         });
 
         //
-        element[contentBoxWidth]  = (element.clientWidth  - (getPxValue(element, "padding-left") + getPxValue(element, "padding-right")))  * zoomOf();
-        element[contentBoxHeight] = (element.clientHeight - (getPxValue(element, "padding-top")  + getPxValue(element, "padding-bottom"))) * zoomOf();
+        element[contentBoxWidth]  = (element.clientWidth ) * zoomOf();
+        element[contentBoxHeight] = (element.clientHeight) * zoomOf();
 
         //
         onContentObserve.set(element, observer);
@@ -187,8 +187,8 @@ export default class AxGesture {
         //
         if (this.#holder.parentNode) {
             const parentNode = this.#holder.parentNode as HTMLElement;
-            parentNode[contentBoxWidth]  = (parentNode.clientWidth  - (getPxValue(parentNode, "padding-left") + getPxValue(parentNode, "padding-right")))  * zoomOf();
-            parentNode[contentBoxHeight] = (parentNode.clientHeight - (getPxValue(parentNode, "padding-top")  + getPxValue(parentNode, "padding-bottom"))) * zoomOf();
+            parentNode[contentBoxWidth]  = (parentNode.clientWidth )  * zoomOf();
+            parentNode[contentBoxHeight] = (parentNode.clientHeight) * zoomOf();
         }
     }
 
