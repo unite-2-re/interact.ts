@@ -68,7 +68,7 @@ export const makeSelection = (boxElement, selector = "*")=>{
     $style$.setProperty("inline-size", "0", "");
     $style$.setProperty("block-size", "0", "");
     $style$.setProperty("overflow", "hidden", "");
-    $style$.setProperty("z-index", "9999", "");
+    $style$.setProperty("z-index", "99", "");
     $style$.setProperty("box-sizing", "border-box", "");
     $style$.setProperty("pointer-events", "none", "");
 
