@@ -165,8 +165,8 @@ export default class AxGesture {
 
         //
         doBorderObserve(this.#holder);
-        if (this.#holder.parentNode) {
-            doContentObserve(this.#holder.parentNode);
+        if (this.#parent) {
+            doContentObserve(this.#parent);
         }
 
         //
@@ -185,10 +185,10 @@ export default class AxGesture {
         this.#holder.style.setProperty("--border-height", this.#holder.offsetHeight + "px");
 
         //
-        if (this.#holder.parentNode) {
-            const parentNode = this.#holder.parentNode as HTMLElement;
-            parentNode[contentBoxWidth]  = (parentNode.clientWidth )  * zoomOf();
-            parentNode[contentBoxHeight] = (parentNode.clientHeight) * zoomOf();
+        if (this.#parent) {
+            const parent = this.#parent as HTMLElement;
+            parent[contentBoxWidth]  = (parent.clientWidth )  * zoomOf();
+            parent[contentBoxHeight] = (parent.clientHeight) * zoomOf();
         }
     }
 
@@ -333,8 +333,8 @@ export default class AxGesture {
     //
     limitResize(real, virtual, holder, container) {
         //const box = this.#holder.getBoundingClientRect();
-        const widthDiff  = container[contentBoxWidth]  - (holder[borderBoxWidth]  - (this.propGet("--resize-x") || 0) + ((this.#holder.offsetLeft || 0) * zoomOf())/*(this.propGet("--drag-x") || 0)*/);
-        const heightDiff = container[contentBoxHeight] - (holder[borderBoxHeight] - (this.propGet("--resize-y") || 0) + ((this.#holder.offsetTop  || 0) * zoomOf())/*(this.propGet("--drag-y") || 0)*/);
+        const widthDiff  = container?.[contentBoxWidth]  - (holder[borderBoxWidth]  - (this.propGet("--resize-x") || 0) + ((this.#holder.offsetLeft || 0) * zoomOf())/*(this.propGet("--drag-x") || 0)*/);
+        const heightDiff = container?.[contentBoxHeight] - (holder[borderBoxHeight] - (this.propGet("--resize-y") || 0) + ((this.#holder.offsetTop  || 0) * zoomOf())/*(this.propGet("--drag-y") || 0)*/);
 
         // if relative of un-resized to edge corner max-size
         // discount of dragging offset!
@@ -347,8 +347,8 @@ export default class AxGesture {
 
     //
     limitDrag(real, virtual, holder, container) {
-        const widthDiff = (container[contentBoxWidth] - holder[borderBoxWidth]);
-        const heightDiff = (container[contentBoxHeight] - holder[borderBoxHeight]);
+        const widthDiff  = (container?.[contentBoxWidth]  - holder[borderBoxWidth]);
+        const heightDiff = (container?.[contentBoxHeight] - holder[borderBoxHeight]);
 
         // if centered
         //real[0] = clamp(-widthDiff * 0.5, virtual[0], widthDiff * 0.5);
@@ -360,6 +360,12 @@ export default class AxGesture {
 
         //
         return real;
+    }
+
+    //
+    get #parent() {
+        // @ts-ignore
+        return this.#holder.offsetParent ?? this.#holder?.host ?? document.documentElement;
     }
 
     //
@@ -375,7 +381,7 @@ export default class AxGesture {
             const starting = [this.propGet("--resize-x") || 0, this.propGet("--resize-y") || 0];
             grabForDrag(this.#holder, ev, {
                 propertyName: "resize",
-                shifting: this.limitResize(starting, starting, this.#holder, this.#holder.parentNode),
+                shifting: this.limitResize(starting, starting, this.#holder, this.#parent),
             });
 
             // @ts-ignore
@@ -409,7 +415,7 @@ export default class AxGesture {
                         dt.holding.modified,
                         dt.holding.shifting,
                         this.#holder,
-                        this.#holder.parentNode
+                        this.#parent
                     );
                 }
             },
@@ -458,7 +464,7 @@ export default class AxGesture {
                     //
                     grabForDrag(this.#holder, ev, {
                         propertyName: "drag",
-                        shifting: this.limitDrag(starting, starting, this.#holder, this.#holder.parentNode),
+                        shifting: this.limitDrag(starting, starting, this.#holder, this.#parent),
                     });
                 }
             };
@@ -506,12 +512,13 @@ export default class AxGesture {
                     dt.holding.element.deref() == this.#holder &&
                     dt.holding.propertyName == "drag"
                 ) {
-                    this.limitDrag(
+                    // 15.11.2024 - anyways CSS corrects, and dragstart compute real position
+                    /*this.limitDrag(
                         dt.holding.modified,
                         dt.holding.shifting,
                         this.#holder,
-                        this.#holder.parentNode
-                    );
+                        this.#holder.offsetParent
+                    );*/
                 }
             },
             {capture: true, passive: false}
