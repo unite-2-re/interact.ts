@@ -538,7 +538,7 @@ export default class AxGesture {
         //const handler = options.handler || this.#holder;
         const action: any = { pointerId: -1, timer: null };
         const initiate = (ev)=>{
-            if (ev.target.matches(options.selector) && action.pointerId < 0) {
+            if ((ev.target.matches(options.selector) || ev.target.closest(options.selector)) && action.pointerId < 0) {
                 action.pointerId = ev.pointerId;
                 action.timer = setTimeout(()=>{
                     fx?.(ev);
@@ -555,7 +555,7 @@ export default class AxGesture {
 
         //
         const cancelEv = (ev)=>{
-            if ((ev.target as HTMLElement)?.matches(options.selector) && action.pointerId == ev.pointerId) {
+            if ((ev.target.matches(options.selector) || ev.target.closest(options.selector)) && action.pointerId == ev.pointerId) {
                 if (action.timer) { clearTimeout(action.timer); };
 
                 //
