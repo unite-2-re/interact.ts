@@ -2,11 +2,7 @@ import {zoomOf} from "./Zoom";
 import {grabForDrag} from "./PointerAPI";
 
 //
-const clamp = (min, val, max) => {
-    return Math.max(min, Math.min(val, max));
-};
-
-//
+const clamp = (min, val, max) => Math.max(min, Math.min(val, max));
 const tpm = (callback: (p0: Function, p1: Function) => {}, timeout = 1000) => {
     return new Promise((resolve, reject) => {
         // Set up the timeout
@@ -29,19 +25,11 @@ const tpm = (callback: (p0: Function, p1: Function) => {}, timeout = 1000) => {
 };
 
 //
-const borderBoxWidth  = Symbol("@border-box-width");
-const borderBoxHeight = Symbol("@border-box-height");
+const borderBoxWidth  = Symbol("@border-box-width") , borderBoxHeight  = Symbol("@border-box-height");
+const contentBoxWidth = Symbol("@content-box-width"), contentBoxHeight = Symbol("@content-box-height");
 
 //
-const contentBoxWidth  = Symbol("@content-box-width");
-const contentBoxHeight = Symbol("@content-box-height");
-
-
-//
-interface InteractStatus {
-    pointerId?: number;
-}
-
+interface InteractStatus { pointerId?: number; };
 
 //
 const getPxValue = (element, name)=>{
@@ -547,13 +535,8 @@ export default class AxGesture {
             new CustomEvent("long-hover", {detail: ev, bubbles: true})
         );
     }) {
-        const handler = options.handler || this.#holder;
-        const action: any = {
-            pointerId: -1,
-            timer: null
-        };
-
-        //
+        //const handler = options.handler || this.#holder;
+        const action: any = { pointerId: -1, timer: null };
         const initiate = (ev)=>{
             if (ev.target.matches(options.selector) && action.pointerId < 0) {
                 action.pointerId = ev.pointerId;
@@ -567,20 +550,17 @@ export default class AxGesture {
         }
 
         //
-        handler.addEventListener("pointerover", initiate);
-        handler.addEventListener("pointerdown", initiate);
+        document.documentElement.addEventListener("pointerover", initiate);
+        document.documentElement.addEventListener("pointerdown", initiate);
 
         //
         const cancelEv = (ev)=>{
             if ((ev.target as HTMLElement)?.matches(options.selector) && action.pointerId == ev.pointerId) {
-                if (action.timer) {
-                    clearTimeout(action.timer);
-                }
-                action.timer = null;
-                action.pointerId = -1;
+                if (action.timer) { clearTimeout(action.timer); };
 
-                // @ts-ignore
-                ev.target?.releasePointerCapture?.(ev.pointerId);
+                //
+                action.timer   = null;
+                action.pointerId = -1;
             }
         }
 
