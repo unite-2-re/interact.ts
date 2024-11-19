@@ -31,12 +31,13 @@ export const makeSelection = (boxElement, selector = "*")=>{
     }
 
     //
-    (async ()=>{
+    requestIdleCallback(async ()=>{
         while (true) {
             if (state.pointerId >= 0) {
                 const elements = boxElement.querySelectorAll(selector);
-                const s_box = selectionBox.getBoundingClientRect();
+                const s_box    = selectionBox.getBoundingClientRect();
 
+                //
                 elements.forEach((el)=>{
                     const box = el.getBoundingClientRect();
                     if (overlap(box, s_box)) { selected.add(el); } else { selected.delete(el); };
@@ -46,7 +47,7 @@ export const makeSelection = (boxElement, selector = "*")=>{
             //
             await new Promise((rs)=>requestAnimationFrame(rs));
         }
-    })();
+    }, {timeout: 1000});
 
     //
     selectionBox.classList.add("u2-selection-box");

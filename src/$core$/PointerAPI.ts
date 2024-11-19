@@ -186,7 +186,7 @@ export const setProperty = (target, name, value, importance = "")=>{
 
 //
 const delayed = new Map<number, Function | null>([]);
-requestAnimationFrame(async ()=>{
+requestIdleCallback(async ()=>{
     while(true) {
         for (const dl of delayed.entries()) {
             dl[1]?.(); delayed.delete(dl[0]);
@@ -195,12 +195,21 @@ requestAnimationFrame(async ()=>{
         //
         try { await (new Promise((rs)=>requestAnimationFrame(rs))); } catch(e) { break; };
     }
-});
+}, {timeout: 1000});
 
 //
 const callByFrame = (pointerId, cb)=>{
     delayed.set(pointerId, cb);
 }
+
+//
+addEventListener("beforeunload", (event) => { delayed.clear(); pointerMap.clear(); });
+addEventListener("pagehide", (event) => { delayed.clear(); pointerMap.clear(); });
+
+//
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { delayed.clear(); pointerMap.clear(); };
+});
 
 //
 document.documentElement.addEventListener(
