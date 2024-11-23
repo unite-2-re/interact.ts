@@ -152,6 +152,10 @@ export default class AxGesture {
         this.#holder["@control"] = this;
 
         //
+        const weak = new WeakRef(this);
+        const updSize_w = new WeakRef(this.#updateSize);
+
+        //
         doBorderObserve(this.#holder);
         if (this.#parent) {
             doContentObserve(this.#parent);
@@ -159,7 +163,8 @@ export default class AxGesture {
 
         //
         document.documentElement.addEventListener("scaling", ()=>{
-            this.#updateSize();
+            const self = weak?.deref?.();
+            try { updSize_w?.deref?.call?.(self); } catch(e) {};
         });
     }
 
@@ -185,11 +190,12 @@ export default class AxGesture {
         if (options?.handler) {
             //
             const swipes = new Map<number, any>([]);
+            const swipes_w = new WeakRef(swipes);
 
             //
             document.documentElement.addEventListener("pointerdown", (ev) => {
                 if (ev.target == options?.handler) {
-                    swipes.set(ev.pointerId, {
+                    swipes?.set(ev.pointerId, {
                         target: ev.target,
                         start: [ev.clientX, ev.clientY],
                         current: [ev.clientX, ev.clientY],
@@ -207,9 +213,9 @@ export default class AxGesture {
 
             //
             const registerMove = (ev) => {
-                if (swipes.has(ev.pointerId)) {
+                if (swipes?.has?.(ev.pointerId)) {
                     ev.stopPropagation();
-                    const swipe = swipes.get(ev.pointerId);
+                    const swipe = swipes?.get?.(ev.pointerId);
                     Object.assign(swipe || {}, {
                         //speed: (swipe.speed == 0 ? speed : (speed * 0.8 + swipe.speed * 0.2)),
                         current: [ev.clientX, ev.clientY],
@@ -226,8 +232,8 @@ export default class AxGesture {
 
             //
             const completeSwipe = (pointerId) => {
-                if (swipes.has(pointerId)) {
-                    const swipe = swipes.get(pointerId);
+                if (swipes?.has?.(pointerId)) {
+                    const swipe = swipes_w?.deref()?.get?.(pointerId);
                     const diffP = [
                         swipe.start[0] - swipe.current[0],
                         swipe.start[1] - swipe.current[1],
@@ -295,7 +301,7 @@ export default class AxGesture {
 
                         options?.trigger?.(swipe);
                     }
-                    swipes.delete(pointerId);
+                    swipes_w?.deref()?.delete?.(pointerId);
                 }
             };
 
@@ -362,15 +368,27 @@ export default class AxGesture {
         const status: InteractStatus = {
             pointerId: -1,
         };
+        const weak = new WeakRef(this.#holder);
+        const self_w = new WeakRef(this);
+        const upd_w = new WeakRef(this.#updateSize);
 
         //
         handler.addEventListener("pointerdown", (ev) => {
-            status.pointerId = ev.pointerId; this.#updateSize();
-            const starting = [this.propGet("--resize-x") || 0, this.propGet("--resize-y") || 0];
-            grabForDrag(this.#holder, ev, {
-                propertyName: "resize",
-                shifting: this.limitResize(starting, starting, this.#holder, this.#parent),
-            });
+            const self = self_w?.deref();
+
+            //
+            status.pointerId = ev.pointerId; try { upd_w?.deref?.call?.(self); } catch(e) {};
+            const starting = [self?.propGet?.("--resize-x") || 0, self?.propGet?.("--resize-y") || 0];
+            const holder = weak?.deref?.() as any;
+            const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
+
+            //
+            if (holder) {
+                grabForDrag(holder, ev, {
+                    propertyName: "resize",
+                    shifting: self?.limitResize?.(starting, starting, holder, parent),
+                });
+            }
 
             // @ts-ignore
             ev.target?.setPointerCapture?.(ev.pointerId);
@@ -392,18 +410,23 @@ export default class AxGesture {
         this.#holder.addEventListener(
             "m-dragging",
             (ev) => {
-                const dt = ev.detail;
+                const holder = weak?.deref?.() as any;
+                const self   = self_w?.deref?.();
+                const dt     = ev.detail;
+                const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
+
+                //
                 if (
-                    this.#holder &&
+                    holder &&
                     dt.pointer.id == status.pointerId &&
-                    dt.holding.element.deref() == this.#holder &&
+                    dt.holding.element.deref() == holder &&
                     dt.holding.propertyName == "resize"
                 ) {
-                    this.limitResize(
+                    self?.limitResize?.(
                         dt.holding.modified,
                         dt.holding.shifting,
-                        this.#holder,
-                        this.#parent
+                        holder,
+                        parent
                     );
                 }
             },
@@ -432,7 +455,9 @@ export default class AxGesture {
         };
 
         //
-        //this.#dragStatus = status;
+        const weak   = new WeakRef(this.#holder);
+        const self_w = new WeakRef(this);
+        const upd_w  = new WeakRef(this.#updateSize);
 
         //
         handler.addEventListener("pointerdown", (ev) => {
@@ -440,20 +465,25 @@ export default class AxGesture {
 
             //
             const shiftEv = (evp) => {
+                const self = self_w?.deref?.();
                 if (evp.pointerId == ev.pointerId) {
                     unListenShift(evp);
                 }
 
                 {   //
-                    this.#updateSize();
-                    //const box = this.#holder.getBoundingClientRect();
-                    const starting = [(this.#holder.offsetLeft || 0) * zoomOf(), (this.#holder.offsetTop || 0) * zoomOf()];//[this.propGet("--drag-x") || 0, this.propGet("--drag-y") || 0];
+                    const holder = weak?.deref?.() as any;
+                    const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
+                    if (holder) {
+                        try { upd_w?.deref?.call?.(self); } catch(e) {};
+                        //const box = this.#holder.getBoundingClientRect();
+                        const starting = [(holder.offsetLeft || 0) * zoomOf(), (holder.offsetTop || 0) * zoomOf()];//[this.propGet("--drag-x") || 0, this.propGet("--drag-y") || 0];
 
-                    //
-                    grabForDrag(this.#holder, ev, {
-                        propertyName: "drag",
-                        shifting: this.limitDrag(starting, starting, this.#holder, this.#parent),
-                    });
+                        //
+                        grabForDrag(holder, ev, {
+                            propertyName: "drag",
+                            shifting: self?.limitDrag?.(starting, starting, holder, parent),
+                        });
+                    }
                 }
             };
 
@@ -495,9 +525,9 @@ export default class AxGesture {
             (ev) => {
                 const dt = ev.detail;
                 if (
-                    this.#holder &&
+                    weak?.deref?.() &&
                     dt.pointer.id == status.pointerId &&
-                    dt.holding.element.deref() == this.#holder &&
+                    dt.holding.element.deref() == weak?.deref?.() &&
                     dt.holding.propertyName == "drag"
                 ) {
                     // 15.11.2024 - anyways CSS corrects, and dragstart compute real position
@@ -576,8 +606,15 @@ export default class AxGesture {
         options: any = {},
         fx: any = null
     ) {
+        //
+        const weak   = new WeakRef(this.#holder);
+        const self_w = new WeakRef(this);
+        const upd_s  = this.#updateSize;//.bind(this);
+        const upd_w  = new WeakRef(upd_s);
+
+        //
         fx ||= (ev) => {
-            this.#holder.dispatchEvent(new CustomEvent("long-press", {detail: ev, bubbles: true}));
+            weak?.deref()?.dispatchEvent(new CustomEvent("long-press", {detail: ev, bubbles: true}));
             //requestAnimationFrame(()=>navigator?.vibrate?.([10]))
         }
 
@@ -687,7 +724,7 @@ export default class AxGesture {
             "pointerdown",
             (ev) => {
                 if (
-                    (this.#holder.contains(ev.target as HTMLElement) && (options.handler ? (ev.target as HTMLElement).matches(options.handler) : false) || (ev.target == this.#holder)) &&
+                    (weak?.deref()?.contains(ev.target as HTMLElement) && (options.handler ? (ev.target as HTMLElement).matches(options.handler) : false) || (ev.target == weak?.deref())) &&
                     action.pointerId < 0 &&
                     (options.anyPointer || ev.pointerType == "touch")
                 ) {
