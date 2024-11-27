@@ -1,3 +1,26 @@
+//
+const getPadding = (element?: HTMLElement | null | undefined): [number, number]=>{
+    if (element) {
+        if (element?.computedStyleMap) {
+            const com = element?.computedStyleMap?.();
+            const ips = com?.get?.("padding-inline-start") as any;
+            const bps = com?.get?.("padding-block-start") as any;
+            return [
+                (ips?.value ?? parseFloat(ips?.[0]))||0,
+                (bps?.value ?? parseFloat(bps?.[0]))||0
+            ];
+        } else {
+            const com = element ? getComputedStyle(element) : null;
+            return [
+                parseFloat(com?.getPropertyValue?.("padding-inline-start") || "0") || 0,
+                parseFloat(com?.getPropertyValue?.("padding-block-start")  || "0") || 0
+            ];
+        }
+    }
+    return [0, 0];
+}
+
+
 export const makeSelection = (boxElement, selector = "*")=>{
     const state = { pointerId: -1, start: [0, 0] };
     const selectionBox = document.createElement("div");
@@ -60,8 +83,9 @@ export const makeSelection = (boxElement, selector = "*")=>{
 
     //
     const $style$ = selectionBox.style;
-    $style$.setProperty("position", "fixed", "");
+    $style$.setProperty("position", "absolute", "important");
     $style$.setProperty("display", "none", "");
+    $style$.setProperty("inset", "0", "");
     $style$.setProperty("inset-inline-start", "0", "");
     $style$.setProperty("inset-inline-end", "auto", "");
     $style$.setProperty("inset-block-start", "0", "");
@@ -86,13 +110,14 @@ export const makeSelection = (boxElement, selector = "*")=>{
             //boxElement.querySelectorAll(selector).forEach((el)=>observer.observe(el));
 
             //
-            const ofp = selectionBox.offsetParent;
+            const ofp = selectionBox.offsetParent as HTMLElement;
             const box = ofp?.getBoundingClientRect();
+            const com = getPadding(ofp);
 
             //
             const $style$ = selectionBox.style;
-            $style$.setProperty("inset-inline-start", `${state.start[0] - (box?.left||0)}px`, "");
-            $style$.setProperty("inset-block-start", `${state.start[1] - (box?.top ||0)}px`, "");
+            $style$.setProperty("inset-inline-start", `${state.start[0] - (box?.left||0) - (com?.[0] || 0)}px`, "");
+            $style$.setProperty("inset-block-start", `${state.start[1] - (box?.top ||0) - (com?.[1] || 0)}px`, "");
             $style$.setProperty("display", "block", "");
 
             //
@@ -104,15 +129,16 @@ export const makeSelection = (boxElement, selector = "*")=>{
     document.documentElement.addEventListener("pointermove", (ev)=>{
         if (state.pointerId == ev.pointerId) {
             const $style$ = selectionBox.style;
-            const ofp = selectionBox.offsetParent;
+            const ofp = selectionBox.offsetParent as HTMLElement;
             const box = ofp?.getBoundingClientRect();
+            const com = getPadding(ofp);
 
             //
             document.body.style.cursor = "crosshair";
 
             //
-            $style$.setProperty("inset-inline-start", `${state.start[0] + Math.min(ev.clientX - state.start[0], 0) - (box?.left||0)}px`, "");
-            $style$.setProperty("inset-block-start", `${state.start[1] + Math.min(ev.clientY - state.start[1], 0) - (box?.top ||0)}px`, "");
+            $style$.setProperty("inset-inline-start", `${state.start[0] + Math.min(ev.clientX - state.start[0], 0) - (box?.left||0) - (com?.[0] || 0)}px`, "");
+            $style$.setProperty("inset-block-start", `${state.start[1] + Math.min(ev.clientY - state.start[1], 0) - (box?.top ||0) - (com?.[1] || 0)}px`, "");
             $style$.setProperty("inline-size", `${Math.abs(ev.clientX - state.start[0])}px`, "");
             $style$.setProperty("block-size", `${Math.abs(ev.clientY - state.start[1])}px`, "");
             $style$.setProperty("display", "block", "");
