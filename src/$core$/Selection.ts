@@ -116,8 +116,8 @@ export const makeSelection = (boxElement, selector = "*")=>{
 
             //
             const $style$ = selectionBox.style;
-            $style$.setProperty("inset-inline-start", `${state.start[0] - (box?.left||0) - (com?.[0] || 0)}px`, "");
-            $style$.setProperty("inset-block-start", `${state.start[1] - (box?.top ||0) - (com?.[1] || 0)}px`, "");
+            $style$.setProperty("inset-inline-start", `${state.start[0] - (ofp?.offsetLeft || 0) - (com?.[0] || 0)}px`, "");
+            $style$.setProperty("inset-block-start", `${state.start[1] - (ofp?.offsetTop || 0) - (com?.[1] || 0)}px`, "");
             $style$.setProperty("display", "block", "");
 
             //
@@ -137,8 +137,8 @@ export const makeSelection = (boxElement, selector = "*")=>{
             document.body.style.cursor = "crosshair";
 
             //
-            $style$.setProperty("inset-inline-start", `${state.start[0] + Math.min(ev.clientX - state.start[0], 0) - (box?.left||0) - (com?.[0] || 0)}px`, "");
-            $style$.setProperty("inset-block-start", `${state.start[1] + Math.min(ev.clientY - state.start[1], 0) - (box?.top ||0) - (com?.[1] || 0)}px`, "");
+            $style$.setProperty("inset-inline-start", `${state.start[0] + Math.min(ev.clientX - state.start[0], 0) - (ofp?.offsetLeft||0) - (com?.[0] || 0)}px`, "");
+            $style$.setProperty("inset-block-start", `${state.start[1] + Math.min(ev.clientY - state.start[1], 0) - (ofp?.offsetTop||0) - (com?.[1] || 0)}px`, "");
             $style$.setProperty("inline-size", `${Math.abs(ev.clientX - state.start[0])}px`, "");
             $style$.setProperty("block-size", `${Math.abs(ev.clientY - state.start[1])}px`, "");
             $style$.setProperty("display", "block", "");
