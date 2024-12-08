@@ -1,5 +1,5 @@
 import {zoomOf} from "./Zoom";
-import {grabForDrag} from "./PointerAPI";
+import { grabForDrag, setProperty } from "./PointerAPI";
 
 //
 const clamp = (min, val, max) => Math.max(min, Math.min(val, max));
@@ -88,8 +88,8 @@ const doBorderObserve = (element) => {
                         element[borderBoxHeight] = borderBoxSize.blockSize * zoomOf();
 
                         //
-                        element.style.setProperty("--border-width" , borderBoxSize.inlineSize + "px");
-                        element.style.setProperty("--border-height", borderBoxSize.blockSize  + "px");
+                        //setProperty(element, "--border-width" , borderBoxSize.inlineSize + "px");
+                        //setProperty(element, "--border-height", borderBoxSize.blockSize  + "px");
                     }
                 }
             }
@@ -100,8 +100,8 @@ const doBorderObserve = (element) => {
         element[borderBoxHeight] = element.offsetHeight * zoomOf();
 
         //
-        element.style.setProperty("--border-width" , element.offsetWidth  + "px");
-        element.style.setProperty("--border-height", element.offsetHeight + "px");
+        //setProperty(element, "--border-width" , element.offsetWidth  + "px");
+        //setProperty(element, "--border-height", element.offsetHeight + "px");
 
         //
         onBorderObserve.set(element, observer);
@@ -174,13 +174,13 @@ export default class AxGesture {
         this.#holder[borderBoxHeight] = this.#holder.offsetHeight * zoomOf();
 
         //
-        this.#holder.style.setProperty("--border-width" , this.#holder.offsetWidth  + "px");
-        this.#holder.style.setProperty("--border-height", this.#holder.offsetHeight + "px");
+        //this.#holder.style.setProperty("--border-width" , this.#holder.offsetWidth  + "px");
+        //this.#holder.style.setProperty("--border-height", this.#holder.offsetHeight + "px");
 
         //
         if (this.#parent) {
             const parent = this.#parent as HTMLElement;
-            parent[contentBoxWidth]  = (parent.clientWidth )  * zoomOf();
+            parent[contentBoxWidth]  = (parent.clientWidth ) * zoomOf();
             parent[contentBoxHeight] = (parent.clientHeight) * zoomOf();
         }
     }
@@ -384,6 +384,7 @@ export default class AxGesture {
 
             //
             if (holder) {
+                holder.style.setProperty("will-change", "inline-size, block-size, width, height, --resize-x, --resize-y", "important");
                 grabForDrag(holder, ev, {
                     propertyName: "resize",
                     shifting: self?.limitResize?.(starting, starting, holder, parent),
@@ -411,17 +412,17 @@ export default class AxGesture {
             "m-dragging",
             (ev) => {
                 const holder = weak?.deref?.() as any;
-                const self   = self_w?.deref?.();
                 const dt     = ev.detail;
-                const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
 
                 //
                 if (
                     holder &&
                     dt.pointer.id == status.pointerId &&
-                    dt.holding.element.deref() == holder &&
-                    dt.holding.propertyName == "resize"
+                    dt.holding.propertyName == "resize" &&
+                    dt.holding.element.deref() == holder
                 ) {
+                    const self   = self_w?.deref?.();
+                    const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
                     self?.limitResize?.(
                         dt.holding.modified,
                         dt.holding.shifting,
@@ -437,7 +438,7 @@ export default class AxGesture {
         this.#holder.addEventListener(
             "m-dragend",
             (ev) => {
-                const dt = ev.detail;
+                const dt = ev.detail; ev?.target?.style.removeProperty("will-change");
                 if (dt.holding.propertyName == "resize") {
                     status.pointerId = -1;
                     //this.#resizeMute = false;
@@ -464,19 +465,26 @@ export default class AxGesture {
             status.pointerId = ev.pointerId;
 
             //
-            const shiftEv = (evp) => {
-                const self = self_w?.deref?.();
-                if (evp.pointerId == ev.pointerId) {
-                    unListenShift(evp);
-                }
+            let trigger = false;
+            const holder = weak?.deref?.() as any;
+            if (holder) {
+                holder.style.setProperty("will-change", "top, left, inset-inline-start, inset-block-start, --drag-x, --drag-y", "important");
+            }
 
-                {   //
+            //
+            const shiftEv: [any, any] = [(evp) => {
+                if (evp.pointerId == ev.pointerId && !trigger) {
+                    trigger = true;
+                    unListenShift();
+
+                    //
                     const holder = weak?.deref?.() as any;
-                    const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
                     if (holder) {
+                        const self = self_w?.deref?.();
                         try { upd_w?.deref?.call?.(self); } catch(e) {};
                         //const box = this.#holder.getBoundingClientRect();
                         const starting = [(holder.offsetLeft || 0) * zoomOf(), (holder.offsetTop || 0) * zoomOf()];//[this.propGet("--drag-x") || 0, this.propGet("--drag-y") || 0];
+                        const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
 
                         //
                         grabForDrag(holder, ev, {
@@ -485,19 +493,20 @@ export default class AxGesture {
                         });
                     }
                 }
-            };
+            }, {once: true}];
 
             //
-            const unListenShift = (evp) => {
-                if (evp.pointerId == ev.pointerId) {
-                    document.documentElement.removeEventListener("pointermove"  , shiftEv);
+            const unListenShift = (evp?) => {
+                if (!evp || evp?.pointerId == ev.pointerId) {
+                    //const holder = weak?.deref?.() as any;
+                    document.documentElement.removeEventListener("pointermove"  , ...shiftEv);
                     document.documentElement.removeEventListener("pointerup"    , unListenShift);
                     document.documentElement.removeEventListener("pointercancel", unListenShift);
                 }
             };
 
             //
-            document.documentElement.addEventListener("pointermove"  , shiftEv);
+            document.documentElement.addEventListener("pointermove"  , ...shiftEv);
             document.documentElement.addEventListener("pointerup"    , unListenShift);
             document.documentElement.addEventListener("pointercancel", unListenShift);
 
@@ -508,10 +517,14 @@ export default class AxGesture {
         //
         const cancelShift = (ev)=>{
             //
-            if (ev.type == "pointercancel" || ev.type == "pointerup") {
+            if ((ev.type == "pointercancel" || ev.type == "pointerup") && status.pointerId == ev?.pointerId) {
                 // @ts-ignore
                 //ev.target?.releasePointerCapture?.(ev.pointerId);
                 status.pointerId = -1;
+
+                //
+                const holder = weak?.deref?.() as any;
+                holder?.style?.removeProperty?.("will-change");
             }
         }
 
@@ -520,16 +533,16 @@ export default class AxGesture {
         document.documentElement.addEventListener("pointercancel", cancelShift);
 
         //
-        this.#holder.addEventListener(
-            "m-dragging",
-            (ev) => {
-                const dt = ev.detail;
-                if (
-                    weak?.deref?.() &&
-                    dt.pointer.id == status.pointerId &&
-                    dt.holding.element.deref() == weak?.deref?.() &&
-                    dt.holding.propertyName == "drag"
-                ) {
+        //this.#holder.addEventListener(
+            //"m-dragging",
+            //(ev) => {
+                //const dt = ev.detail;
+                //if (
+                    //weak?.deref?.() &&
+                    //dt.pointer.id == status.pointerId &&
+                    //dt.holding.element.deref() == weak?.deref?.() &&
+                    //dt.holding.propertyName == "drag"
+                //) {
                     // 15.11.2024 - anyways CSS corrects, and dragstart compute real position
                     /*this.limitDrag(
                         dt.holding.modified,
@@ -537,10 +550,10 @@ export default class AxGesture {
                         this.#holder,
                         this.#holder.offsetParent
                     );*/
-                }
-            },
-            {capture: true, passive: false}
-        );
+                //}
+            //},
+            //{capture: true, passive: false}
+        //);
     }
 
     //
@@ -552,10 +565,11 @@ export default class AxGesture {
 
     //
     propFloat(name, val) {
-        const pVal = this.#holder.style.getPropertyValue(name);
+        /*const pVal = this.#holder.style.getPropertyValue(name);
         if (parseFloat(pVal) != val && pVal != val || pVal == null) {
             this.#holder.style.setProperty(name, val, "");
-        }
+        }*/
+        setProperty(this.#holder, name, val);
     }
 
 

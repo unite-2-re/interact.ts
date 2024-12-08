@@ -1,4 +1,13 @@
 //
+const regProp = (options: any)=>{
+    try {
+        CSS?.registerProperty?.(options);
+    } catch(e) {
+        console.warn(e);
+    };
+};
+
+//
 class PointerEdge {
     pointer: [number, number] = [0, 0];
     results: any;
@@ -122,17 +131,6 @@ document.documentElement.addEventListener(
     },
     {capture: true}
 );
-
-
-
-//
-const regProp = (options: any)=>{
-    try {
-        CSS?.registerProperty?.(options);
-    } catch(e) {
-        console.warn(e);
-    };
-};
 
 //
 regProp?.({
@@ -265,7 +263,7 @@ document.documentElement.addEventListener(
         });
 
         //
-        callByFrame(ev.pointerId, ()=>{
+        //callByFrame(ev.pointerId, ()=>{
             exists?.holding?.forEach((hm) => {
                 if (hm.modified && Math.hypot(...np.movement) >= 0.001) {
                     //
@@ -298,7 +296,7 @@ document.documentElement.addEventListener(
                     );
                 }
             });
-        });
+        //});
 
         //
         ["left", "top", "right", "bottom"].forEach((side) => {
