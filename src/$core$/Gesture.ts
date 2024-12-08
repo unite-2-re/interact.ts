@@ -481,7 +481,7 @@ export default class AxGesture {
             let trigger = false;
             const holder = weak?.deref?.() as any;
             if (holder) {
-                holder.style.setProperty("will-change", "inset, transform", "important");
+                holder.style.setProperty("will-change", "transform", "important");
             }
 
             //
