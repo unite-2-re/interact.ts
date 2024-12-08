@@ -384,7 +384,7 @@ export default class AxGesture {
 
             //
             if (holder) {
-                holder.style.setProperty("will-change", "inline-size, block-size, width, height, --resize-x, --resize-y", "important");
+                holder.style.setProperty("will-change", "contents, inline-size, block-size, width, height, transform", "important");
                 grabForDrag(holder, ev, {
                     propertyName: "resize",
                     shifting: self?.limitResize?.(starting, starting, holder, parent),
@@ -468,7 +468,7 @@ export default class AxGesture {
             let trigger = false;
             const holder = weak?.deref?.() as any;
             if (holder) {
-                holder.style.setProperty("will-change", "top, left, inset-inline-start, inset-block-start, --drag-x, --drag-y", "important");
+                holder.style.setProperty("will-change", "inset, transform", "important");
             }
 
             //
