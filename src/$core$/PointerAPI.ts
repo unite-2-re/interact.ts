@@ -386,14 +386,14 @@ export const releasePointer = (ev) => {
                 },
             });
             em?.dispatchEvent?.(nev);
+
+            // @ts-ignore
+            em?.target?.releasePointerCapture?.(ev.pointerId);
         });
 
         //
         exists.holding = [];
         pointerMap.delete(ev.pointerId);
-
-        // @ts-ignore
-        ev?.target?.releasePointerCapture?.(ev.pointerId);
     }
 };
 
