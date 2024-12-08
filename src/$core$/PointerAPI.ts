@@ -150,6 +150,22 @@ regProp?.({
 
 //
 regProp?.({
+    name: "--shift-x",
+    syntax: "<number>",
+    inherits: true,
+    initialValue: `0`,
+});
+
+//
+regProp?.({
+    name: "--shift-y",
+    syntax: "<number>",
+    inherits: true,
+    initialValue: `0`,
+});
+
+//
+regProp?.({
     name: "--drag-x",
     syntax: "<number>",
     inherits: true,
@@ -386,9 +402,7 @@ export const releasePointer = (ev) => {
                 },
             });
             em?.dispatchEvent?.(nev);
-
-            // @ts-ignore
-            em?.target?.releasePointerCapture?.(ev.pointerId);
+            em?.releasePointerCapture?.(ev.pointerId);
         });
 
         //
@@ -424,7 +438,7 @@ export const grabForDrag = (
         const prop: any = Object.assign(ex || {}, {
             propertyName,
             element: new WeakRef(element),
-            shifting: [...(ex?.modified || ex?.shifting || shifting || [])],
+            shifting: [...(shifting || ex?.shifting || ex?.modified || [])],
         })
 
         //

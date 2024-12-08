@@ -32,6 +32,19 @@ const contentBoxWidth = Symbol("@content-box-width"), contentBoxHeight = Symbol(
 interface InteractStatus { pointerId?: number; };
 
 //
+/*const getValue = (element, name)=>{
+    if ("computedStyleMap" in element) {
+        const cm = element?.computedStyleMap();
+        return cm.get(name)?.value || 0;
+    } else
+    if (element instanceof HTMLElement) {
+        const cs = getComputedStyle(element, "");
+        return (parseFloat(cs.getPropertyValue(name)?.replace?.("px", "")) || 0);
+    }
+    return 0;
+}*/
+
+//
 const getPxValue = (element, name)=>{
     if ("computedStyleMap" in element) {
         const cm = element?.computedStyleMap();
@@ -340,7 +353,7 @@ export default class AxGesture {
     }
 
     //
-    limitDrag(real, virtual, holder, container) {
+    limitDrag(real, virtual, holder, container, shift: [number, number] = [0, 0]) {
         const widthDiff  = (container?.[contentBoxWidth]  - holder[borderBoxWidth]);
         const heightDiff = (container?.[contentBoxHeight] - holder[borderBoxHeight]);
 
@@ -349,8 +362,8 @@ export default class AxGesture {
         //real[1] = clamp(-heightDiff * 0.5, virtual[1], heightDiff * 0.5);
 
         // if origin in top-left
-        real[0] = clamp(0, virtual[0], widthDiff);
-        real[1] = clamp(0, virtual[1], heightDiff);
+        real[0] = clamp(0, virtual[0] + shift[0], widthDiff)  - shift[0];
+        real[1] = clamp(0, virtual[1] + shift[1], heightDiff) - shift[1];
 
         //
         return real;
@@ -483,13 +496,15 @@ export default class AxGesture {
                         const self = self_w?.deref?.();
                         try { upd_w?.deref?.call?.(self); } catch(e) {};
                         //const box = this.#holder.getBoundingClientRect();
-                        const starting = [(holder.offsetLeft || 0) * zoomOf(), (holder.offsetTop || 0) * zoomOf()];//[this.propGet("--drag-x") || 0, this.propGet("--drag-y") || 0];
-                        const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
-
-                        //
+                        const starting = [0, 0/*(holder.offsetLeft || 0) * zoomOf(), (holder.offsetTop || 0) * zoomOf()*/];//[this.propGet("--drag-x") || 0, this.propGet("--drag-y") || 0];
+                        //const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
                         grabForDrag(holder, ev, {
                             propertyName: "drag",
-                            shifting: self?.limitDrag?.(starting, starting, holder, parent),
+                            shifting: starting/*self?.limitDrag?.(
+                                starting, starting, holder, parent,
+                                [(holder.offsetLeft || 0) * zoomOf(),
+                                 (holder.offsetTop  || 0) * zoomOf()
+                                ])*/,
                         });
                     }
                 }
@@ -531,6 +546,42 @@ export default class AxGesture {
         //
         document.documentElement.addEventListener("pointerup"    , cancelShift);
         document.documentElement.addEventListener("pointercancel", cancelShift);
+
+        //
+        this.#holder.addEventListener("m-dragend", (ev) => {
+            const holder     = weak?.deref?.() as any;
+            const parent     = holder?.offsetParent ?? holder?.host ?? document.documentElement;
+            const dragValue  = [...(ev?.detail?.holding?.modified||[0,0])];
+            const widthDiff  = (parent?.[contentBoxWidth]  - holder[borderBoxWidth]);
+            const heightDiff = (parent?.[contentBoxHeight] - holder[borderBoxHeight]);
+            //const box = holder?.getBoundingClientRect?.();
+
+            //
+            if (ev?.detail?.holding?.modified) {
+                ev.detail.holding.modified[0] = 0;
+                ev.detail.holding.modified[1] = 0;
+            };
+
+            //
+            const shift = [
+                parseFloat(holder?.style?.getPropertyValue?.("--shift-x") || "0") || 0,
+                parseFloat(holder?.style?.getPropertyValue?.("--shift-y") || "0") || 0
+            ];
+
+            //
+            const drag = dragValue;//[
+                //box?.left - shift?.[0], //- shift[0],
+                //box?.top  - shift?.[1] //- shift[1]
+            //];
+
+            //
+            setProperty(holder, "--shift-x", clamp(0, drag[0] + shift[0], widthDiff));
+            setProperty(holder, "--shift-y", clamp(0, drag[1] + shift[1], heightDiff));
+
+            //
+            setProperty(holder, "--drag-x", 0);
+            setProperty(holder, "--drag-y", 0);
+        });
 
         //
         //this.#holder.addEventListener(
