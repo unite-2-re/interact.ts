@@ -550,37 +550,37 @@ export default class AxGesture {
         //
         this.#holder.addEventListener("m-dragend", (ev) => {
             const holder     = weak?.deref?.() as any;
-            const parent     = holder?.offsetParent ?? holder?.host ?? document.documentElement;
-            const dragValue  = [...(ev?.detail?.holding?.modified||[0,0])];
-            const widthDiff  = (parent?.[contentBoxWidth]  - holder[borderBoxWidth]);
-            const heightDiff = (parent?.[contentBoxHeight] - holder[borderBoxHeight]);
-            //const box = holder?.getBoundingClientRect?.();
+            //const parent     = holder?.offsetParent ?? holder?.host ?? document.documentElement;
+            //const dragValue  = [...(ev?.detail?.holding?.modified||[0,0])];
+            //const widthDiff  = (parent?.[contentBoxWidth]  - holder[borderBoxWidth]);
+            //const heightDiff = (parent?.[contentBoxHeight] - holder[borderBoxHeight]);
+            const box = holder?.getBoundingClientRect?.();
 
             //
-            if (ev?.detail?.holding?.modified) {
-                ev.detail.holding.modified[0] = 0;
-                ev.detail.holding.modified[1] = 0;
-            };
+            //const shift = [
+                //parseFloat(holder?.style?.getPropertyValue?.("--shift-x") || "0") || 0,
+                //parseFloat(holder?.style?.getPropertyValue?.("--shift-y") || "0") || 0
+            //];
 
             //
-            const shift = [
-                parseFloat(holder?.style?.getPropertyValue?.("--shift-x") || "0") || 0,
-                parseFloat(holder?.style?.getPropertyValue?.("--shift-y") || "0") || 0
-            ];
-
-            //
-            const drag = dragValue;//[
+            //const drag = dragValue;//[
                 //box?.left - shift?.[0], //- shift[0],
                 //box?.top  - shift?.[1] //- shift[1]
             //];
 
             //
-            setProperty(holder, "--shift-x", clamp(0, drag[0] + shift[0], widthDiff));
-            setProperty(holder, "--shift-y", clamp(0, drag[1] + shift[1], heightDiff));
+            setProperty(holder, "--shift-x", /*holder?.offsetLeft*/ box?.left || 0);
+            setProperty(holder, "--shift-y", /*holder?.offsetTop*/  box?.top  || 0);
 
             //
             setProperty(holder, "--drag-x", 0);
             setProperty(holder, "--drag-y", 0);
+
+            //
+            /*if (ev?.detail?.holding?.modified) {
+                ev.detail.holding.modified[0] = 0;
+                ev.detail.holding.modified[1] = 0;
+            };*/
         });
 
         //
