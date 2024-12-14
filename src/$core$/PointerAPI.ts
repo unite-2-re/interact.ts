@@ -283,6 +283,8 @@ document.documentElement.addEventListener(
         //
         callByFrame(ev.pointerId, ()=>{
             exists?.holding?.forEach((hm) => {
+                const em = hm.element?.deref();
+                if (ev.target && !(ev.target.contains(em) || ev.target == em)) { return; };
                 if (hm.modified && Math.hypot(...np.movement) >= 0.001) {
                     //
                     const nev = new CustomEvent("m-dragging", {
@@ -295,7 +297,6 @@ document.documentElement.addEventListener(
                     });
 
                     //
-                    const em = hm.element?.deref();
                     em?.dispatchEvent?.(nev);
 
                     //
@@ -392,8 +393,7 @@ export const releasePointer = (evc) => {
         //
         (exists.holding || []).forEach((hm) => {
             const em = hm.element?.deref();
-
-            //
+            if (ev.target && !(ev.target.contains(em) || ev.target == em)) { return; };
             if (Math.hypot(...(hm.shifting || [0])) > 10 && em) {
                 em?.addEventListener?.("click", ...emt);
                 em?.addEventListener?.("contextmenu", ...emt);
