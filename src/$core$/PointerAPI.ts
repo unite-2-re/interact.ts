@@ -253,9 +253,9 @@ document.documentElement.addEventListener(
 
         //
         if ((exists.holding.length || 0) > 0) {
-            ev.stopImmediatePropagation();
-            ev.stopPropagation();
-            ev.preventDefault();
+            evc?.stopImmediatePropagation?.();
+            evc?.stopPropagation?.();
+            evc?.preventDefault?.();
         }
 
         //
@@ -288,6 +288,7 @@ document.documentElement.addEventListener(
                     const nev = new CustomEvent("m-dragging", {
                         bubbles: true,
                         detail: {
+                            event: ev,
                             pointer: exists,
                             holding: hm,
                         },
@@ -365,7 +366,7 @@ export const releasePointer = (evc) => {
         if ((exists.holding?.length || 0) > 0) {
             //ev.stopImmediatePropagation();
             //ev.stopPropagation();
-            ev.preventDefault();
+            evc?.preventDefault?.();
 
             //
             {
@@ -400,6 +401,7 @@ export const releasePointer = (evc) => {
             const nev = new CustomEvent("m-dragend", {
                 bubbles: true,
                 detail: {
+                    event: ev,
                     pointer: exists,
                     holding: hm,
                 },
@@ -457,6 +459,7 @@ export const grabForDrag = (
         const nev = new CustomEvent("m-dragstart", {
             bubbles: true,
             detail: {
+                event: ev,
                 pointer: exists,
                 holding: prop,
             },

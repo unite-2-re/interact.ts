@@ -28,11 +28,11 @@ export const changeZoom = (scale = 1) => {
 }
 
 //
-export const fixedClientZoom = ()=>{
+export const fixedClientZoom = (element)=>{
     return (document.documentElement?.currentCSSZoom != null ? 1 : zoomOf());
 }
 
 //
-export const unfixedClientZoom = ()=>{
+export const unfixedClientZoom = (element)=>{
     return (document.documentElement?.currentCSSZoom == null ? 1 : zoomOf());
 }
