@@ -458,7 +458,7 @@ export class AxGesture {
                         try { upd_w?.deref?.call?.(self); } catch(e) {};
                         const starting = [0, 0]
                         grabForDrag(holder, ev, {
-                            propertyName: "os-drag",
+                            propertyName: "drag",
                             shifting: starting
                         });
                     }
@@ -509,8 +509,8 @@ export class AxGesture {
             setProperty(holder, "--os-inset-y", box?.top  || 0);
 
             //
-            setProperty(holder, "--os-drag-x", 0);
-            setProperty(holder, "--os-drag-y", 0);
+            setProperty(holder, "--drag-x", 0);
+            setProperty(holder, "--drag-y", 0);
         });
     }
 

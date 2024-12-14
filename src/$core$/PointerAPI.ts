@@ -300,17 +300,17 @@ document.documentElement.addEventListener(
 
                     //
                     if (em) {
-                        em[`@data-${hm.propertyName || "os-drag"}-x`] = hm.modified[0];
-                        em[`@data-${hm.propertyName || "os-drag"}-y`] = hm.modified[1];
+                        em[`@data-${hm.propertyName || "drag"}-x`] = hm.modified[0];
+                        em[`@data-${hm.propertyName || "drag"}-y`] = hm.modified[1];
                     }
 
                     //
                     setProperty(em,
-                        `--${hm.propertyName || "os-drag"}-x`,
+                        `--${hm.propertyName || "drag"}-x`,
                         hm.modified[0] as unknown as string
                     );
                     setProperty(em,
-                        `--${hm.propertyName || "os-drag"}-y`,
+                        `--${hm.propertyName || "drag"}-y`,
                         hm.modified[1] as unknown as string
                     );
                 }
@@ -428,10 +428,10 @@ document.documentElement.addEventListener("ag-contextmenu"  , releasePointer, {c
 //
 export const grabForDrag = (
     element,
-    ev: EvStub = {pointerId: 0},
+    ev: any = {pointerId: 0},
     {
         shifting = [0, 0],
-        propertyName = "os-drag", // use dragging events for use limits
+        propertyName = "drag", // use dragging events for use limits
     } = {}
 ) => {
     const exists = pointerMap.get(ev.pointerId);
@@ -470,8 +470,9 @@ export const grabForDrag = (
 
         //
         if (ev?.pointerId != null && ev?.pointerId >= 0) {
+            ev?.capture?.();
             // @ts-ignore
-            ev?.target?.setPointerCapture?.(ev?.pointerId);
+            //ev?.target?.setPointerCapture?.(ev?.pointerId);
         }
     }
 };
