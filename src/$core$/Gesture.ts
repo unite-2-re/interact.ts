@@ -1,9 +1,22 @@
 // @ts-ignore
-import { fixedClientZoom } from "/externals/lib/agate.js";
+import { fixedClientZoom, orientOf } from "/externals/lib/agate.js";
 import { grabForDrag, setProperty } from "./PointerAPI";
+interface InteractStatus { pointerId?: number; };
+
+//
+const borderBoxWidth  = Symbol("@border-box-width") , borderBoxHeight  = Symbol("@border-box-height");
+const contentBoxWidth = Symbol("@content-box-width"), contentBoxHeight = Symbol("@content-box-height");
+
+//
+const onBorderObserve  = new WeakMap<HTMLElement, ResizeObserver>();
+const onContentObserve = new WeakMap<HTMLElement, ResizeObserver>();
 
 //
 const clamp = (min, val, max) => Math.max(min, Math.min(val, max));
+const bbw = (el, orient = null)=> ((orient??orientOf(el))%2 ? el[borderBoxHeight]  : el[borderBoxWidth]);
+const bbh = (el, orient = null)=> ((orient??orientOf(el))%2 ? el[borderBoxWidth]   : el[borderBoxHeight]);
+const cbw = (el, orient = null)=> ((orient??orientOf(el))%2 ? el[contentBoxHeight] : el[contentBoxWidth]);
+const cbh = (el, orient = null)=> ((orient??orientOf(el))%2 ? el[contentBoxWidth]  : el[contentBoxHeight]);
 const tpm = (callback: (p0: Function, p1: Function) => {}, timeout = 1000) => {
     return new Promise((resolve, reject) => {
         // Set up the timeout
@@ -26,21 +39,6 @@ const tpm = (callback: (p0: Function, p1: Function) => {}, timeout = 1000) => {
 };
 
 //
-const borderBoxWidth  = Symbol("@border-box-width") , borderBoxHeight  = Symbol("@border-box-height");
-const contentBoxWidth = Symbol("@content-box-width"), contentBoxHeight = Symbol("@content-box-height");
-
-//
-const bbw = (el, orient = 0)=> (orient%2 ? el[borderBoxHeight] : el[borderBoxWidth]);
-const bbh = (el, orient = 0)=> (orient%2 ? el[borderBoxWidth] : el[borderBoxHeight]);
-
-//
-const cbw = (el, orient = 0)=> (orient%2 ? el[contentBoxHeight] : el[contentBoxWidth]);
-const cbh = (el, orient = 0)=> (orient%2 ? el[contentBoxWidth] : el[contentBoxHeight]);
-
-//
-interface InteractStatus { pointerId?: number; };
-
-//
 const getPxValue = (element, name)=>{
     if ("computedStyleMap" in element) {
         const cm = element?.computedStyleMap();
@@ -52,10 +50,6 @@ const getPxValue = (element, name)=>{
     }
     return 0;
 }
-
-//
-const onBorderObserve = new WeakMap<HTMLElement, ResizeObserver>();
-const onContentObserve = new WeakMap<HTMLElement, ResizeObserver>();
 
 //
 const doContentObserve = (element) => {
@@ -137,8 +131,8 @@ const blockClickTrigger = (_: MouseEvent | PointerEvent | TouchEvent | null = nu
     }, 100);
 }
 
-// TODO! fix for oriented sizes
-export default class AxGesture {
+//
+export class AxGesture {
     #holder: HTMLElement;
     constructor(holder) {
         if (!holder) {
@@ -300,21 +294,9 @@ export default class AxGesture {
             };
 
             //
-            ROOT.addEventListener(
-                "ag-pointermove",
-                registerMove,
-                {capture: true}
-            );
-            ROOT.addEventListener(
-                "ag-pointerup",
-                (ev) => completeSwipe(ev.pointerId),
-                {capture: true}
-            );
-            ROOT.addEventListener(
-                "ag-pointercancel",
-                (ev) => completeSwipe(ev.pointerId),
-                {capture: true}
-            );
+            ROOT.addEventListener("ag-pointermove", registerMove, {capture: true});
+            ROOT.addEventListener("ag-pointerup", (ev) => completeSwipe(ev.pointerId), {capture: true});
+            ROOT.addEventListener("ag-pointercancel", (ev) => completeSwipe(ev.pointerId), {capture: true});
         }
     }
 
@@ -541,10 +523,6 @@ export default class AxGesture {
 
     //
     propFloat(name, val) {
-        /*const pVal = this.#holder.style.getPropertyValue(name);
-        if (parseFloat(pVal) != val && pVal != val || pVal == null) {
-            this.#holder.style.setProperty(name, val, "");
-        }*/
         setProperty(this.#holder, name, val);
     }
 
@@ -650,9 +628,9 @@ export default class AxGesture {
         };
 
         //
-        const forMove: any[] = [null, {capture: true}];
-        const forCanc: any[] = [null, {capture: true}];
-        const registerCoord = [
+        const forMove: [any, any] = [null, {capture: true}];
+        const forCanc: [any, any] = [null, {capture: true}];
+        const registerCoord: [any, any] = [
             (evc) => {
                 const ev = evc.detail;
                 if (ev.pointerId == action.pointerId) {
@@ -664,7 +642,7 @@ export default class AxGesture {
         ];
 
         //
-        const triggerOrCancel = (evc) => {
+        const triggerOrCancel: any = (evc) => {
             const ev = evc.detail;
             if (ev.pointerId == action.pointerId) {
                 action.lastCoord[0] = ev.orient[0];
@@ -684,7 +662,7 @@ export default class AxGesture {
         };
 
         //
-        const cancelWhenMove = (evc) => {
+        const cancelWhenMove: any = (evc) => {
             const ev = evc.detail;
             if (ev.pointerId == action.pointerId) {
                 action.lastCoord[0] = ev.orient[0];
@@ -727,13 +705,9 @@ export default class AxGesture {
                     const cancelPromiseWithResolve = Promise.withResolvers();
                     action.cancelPromise = cancelPromiseWithResolve.promise;
                     action.cancelRv = () => {
-                        // @ts-ignore
+                        //
                         ROOT.removeEventListener("ag-pointerup", ...forCanc);
-
-                        // @ts-ignore
                         ROOT.removeEventListener("ag-pointercancel", ...forCanc);
-
-                        // @ts-ignore
                         ROOT.removeEventListener("ag-pointermove", ...forMove);
 
                         //
@@ -779,29 +753,21 @@ export default class AxGesture {
                             .then(action.cancelRv);
                     }
 
-                    // @ts-ignore
+                    //
                     ROOT.addEventListener("ag-pointerup", ...forCanc);
-
-                    // @ts-ignore
                     ROOT.addEventListener("ag-pointercancel", ...forCanc);
-
-                    // @ts-ignore
                     ROOT.addEventListener("ag-pointermove", ...forMove);
                 }
             },
             {passive: false, capture: false}
         );
 
-        // @ts-ignore
+        //
         ROOT.addEventListener("ag-pointerup", ...registerCoord);
-
-        // @ts-ignore
         ROOT.addEventListener("ag-pointercancel", ...registerCoord);
-
-        // @ts-ignore
         ROOT.addEventListener("ag-pointermove", ...registerCoord);
     }
 }
 
 //
-export { AxGesture };
+export default AxGesture;
