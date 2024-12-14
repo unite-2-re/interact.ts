@@ -1,4 +1,5 @@
-import { fixedClientZoom } from "./Zoom";
+// @ts-ignore
+import { fixedClientZoom } from "/externals/lib/agate.js";
 import { grabForDrag, setProperty } from "./PointerAPI";
 
 //
@@ -110,6 +111,9 @@ const doBorderObserve = (element) => {
 }
 
 //
+const ROOT = document.documentElement;
+
+//
 const blockClickTrigger = (_: MouseEvent | PointerEvent | TouchEvent | null = null)=>{
     const blocker = (ev)=>{
         ev.preventDefault();
@@ -117,19 +121,19 @@ const blockClickTrigger = (_: MouseEvent | PointerEvent | TouchEvent | null = nu
         ev.stopImmediatePropagation();
 
         //
-        document.documentElement.removeEventListener("click", blocker, options);
-        document.documentElement.removeEventListener("contextmenu", blocker, options);
+        ROOT.removeEventListener("click", blocker, options);
+        ROOT.removeEventListener("contextmenu", blocker, options);
     };
 
     //
     const options = { once: true, capture: true };
-    document.documentElement.addEventListener("click", blocker, options);
-    document.documentElement.addEventListener("contextmenu", blocker, options);
+    ROOT.addEventListener("click", blocker, options);
+    ROOT.addEventListener("contextmenu", blocker, options);
 
     //
     setTimeout(()=>{
-        document.documentElement.removeEventListener("click", blocker, options);
-        document.documentElement.removeEventListener("contextmenu", blocker, options);
+        ROOT.removeEventListener("click", blocker, options);
+        ROOT.removeEventListener("contextmenu", blocker, options);
     }, 100);
 }
 
@@ -156,7 +160,7 @@ export default class AxGesture {
         }
 
         //
-        document.documentElement.addEventListener("scaling", ()=>{
+        ROOT.addEventListener("scaling", ()=>{
             const self = weak?.deref?.();
             try { updSize_w?.deref?.call?.(self); } catch(e) {};
         });
@@ -181,7 +185,7 @@ export default class AxGesture {
             const swipes_w = new WeakRef(swipes);
 
             //
-            document.documentElement.addEventListener("ag-pointerdown", (evc) => {
+            ROOT.addEventListener("ag-pointerdown", (evc) => {
                 const ev = evc.detail;
                 if (ev.target == options?.handler) {
                     swipes?.set(ev.pointerId, {
@@ -296,17 +300,17 @@ export default class AxGesture {
             };
 
             //
-            document.documentElement.addEventListener(
+            ROOT.addEventListener(
                 "ag-pointermove",
                 registerMove,
                 {capture: true}
             );
-            document.documentElement.addEventListener(
+            ROOT.addEventListener(
                 "ag-pointerup",
                 (ev) => completeSwipe(ev.pointerId),
                 {capture: true}
             );
-            document.documentElement.addEventListener(
+            ROOT.addEventListener(
                 "ag-pointercancel",
                 (ev) => completeSwipe(ev.pointerId),
                 {capture: true}
@@ -349,7 +353,7 @@ export default class AxGesture {
     //
     get #parent() {
         // @ts-ignore
-        return this.#holder.offsetParent ?? this.#holder?.host ?? document.documentElement;
+        return this.#holder.offsetParent ?? this.#holder?.host ?? ROOT;
     }
 
     //
@@ -368,7 +372,7 @@ export default class AxGesture {
             status.pointerId = ev.pointerId; try { upd_w?.deref?.call?.(self); } catch(e) {};
             const starting = [self?.propGet?.("--resize-x") || 0, self?.propGet?.("--resize-y") || 0];
             const holder = weak?.deref?.() as any;
-            const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
+            const parent = holder?.offsetParent ?? holder?.host ?? ROOT;
 
             //
             if (holder) {
@@ -410,7 +414,7 @@ export default class AxGesture {
                     dt.holding.element.deref() == holder
                 ) {
                     const self   = self_w?.deref?.();
-                    const parent = holder?.offsetParent ?? holder?.host ?? document.documentElement;
+                    const parent = holder?.offsetParent ?? holder?.host ?? ROOT;
                     self?.limitResize?.(
                         dt.holding.modified,
                         dt.holding.shifting,
@@ -483,16 +487,16 @@ export default class AxGesture {
             const unListenShift = (evp?) => {
                 if (!evp || evp?.pointerId == ev.pointerId) {
                     //const holder = weak?.deref?.() as any;
-                    document.documentElement.removeEventListener("ag-pointermove"  , ...shiftEv);
-                    document.documentElement.removeEventListener("ag-pointerup"    , unListenShift);
-                    document.documentElement.removeEventListener("ag-pointercancel", unListenShift);
+                    ROOT.removeEventListener("ag-pointermove"  , ...shiftEv);
+                    ROOT.removeEventListener("ag-pointerup"    , unListenShift);
+                    ROOT.removeEventListener("ag-pointercancel", unListenShift);
                 }
             };
 
             //
-            document.documentElement.addEventListener("ag-pointermove"  , ...shiftEv);
-            document.documentElement.addEventListener("ag-pointerup"    , unListenShift);
-            document.documentElement.addEventListener("ag-pointercancel", unListenShift);
+            ROOT.addEventListener("ag-pointermove"  , ...shiftEv);
+            ROOT.addEventListener("ag-pointerup"    , unListenShift);
+            ROOT.addEventListener("ag-pointercancel", unListenShift);
         });
 
         //
@@ -510,8 +514,8 @@ export default class AxGesture {
         }
 
         //
-        document.documentElement.addEventListener("ag-pointerup"    , cancelShift);
-        document.documentElement.addEventListener("ag-pointercancel", cancelShift);
+        ROOT.addEventListener("ag-pointerup"    , cancelShift);
+        ROOT.addEventListener("ag-pointercancel", cancelShift);
 
         //
         this.#holder.addEventListener("m-dragend", (ev) => {
@@ -566,10 +570,6 @@ export default class AxGesture {
         }
 
         //
-        document.documentElement.addEventListener("ag-pointerover", initiate);
-        document.documentElement.addEventListener("ag-pointerdown", initiate);
-
-        //
         const cancelEv = (ev)=>{
             if ((ev.target.matches(options.selector) || ev.target.closest(options.selector)) && action.pointerId == ev.pointerId) {
                 if (action.timer) { clearTimeout(action.timer); };
@@ -581,9 +581,11 @@ export default class AxGesture {
         }
 
         //
-        document.documentElement.addEventListener("ag-pointerout"   , cancelEv);
-        document.documentElement.addEventListener("ag-pointerup"    , cancelEv);
-        document.documentElement.addEventListener("ag-pointercancel", cancelEv);
+        ROOT.addEventListener("ag-pointerover", initiate);
+        ROOT.addEventListener("ag-pointerdown", initiate);
+        ROOT.addEventListener("ag-pointerout"   , cancelEv);
+        ROOT.addEventListener("ag-pointerup"    , cancelEv);
+        ROOT.addEventListener("ag-pointercancel", cancelEv);
     }
 
 
@@ -594,9 +596,6 @@ export default class AxGesture {
     ) {
         //
         const weak   = new WeakRef(this.#holder);
-        const self_w = new WeakRef(this);
-        const upd_s  = this.#updateSize;//.bind(this);
-        const upd_w  = new WeakRef(upd_s);
 
         //
         fx ||= (ev) => {
@@ -606,10 +605,10 @@ export default class AxGesture {
 
         //
         const action: any = {
-            pointerId: -1,
             timer: null,
             cancelPromise: null,
             imTimer: null,
+            pointerId: -1,
             pageCoord: [0, 0],
             lastCoord: [0, 0],
             ready: false,
@@ -653,8 +652,6 @@ export default class AxGesture {
         //
         const forMove: any[] = [null, {capture: true}];
         const forCanc: any[] = [null, {capture: true}];
-
-        //
         const registerCoord = [
             (evc) => {
                 const ev = evc.detail;
@@ -709,7 +706,7 @@ export default class AxGesture {
         forMove[0] = cancelWhenMove;
 
         //
-        document.documentElement.addEventListener(
+        ROOT.addEventListener(
             "ag-pointerdown",
             (evc) => {
                 const ev = evc.detail;
@@ -730,21 +727,14 @@ export default class AxGesture {
                     const cancelPromiseWithResolve = Promise.withResolvers();
                     action.cancelPromise = cancelPromiseWithResolve.promise;
                     action.cancelRv = () => {
-                        document.documentElement.removeEventListener(
-                            "ag-pointerup",
-                            // @ts-ignore
-                            ...forCanc
-                        );
-                        document.documentElement.removeEventListener(
-                            "ag-pointercancel",
-                            // @ts-ignore
-                            ...forCanc
-                        );
-                        document.documentElement.removeEventListener(
-                            "ag-pointermove",
-                            // @ts-ignore
-                            ...forMove
-                        );
+                        // @ts-ignore
+                        ROOT.removeEventListener("ag-pointerup", ...forCanc);
+
+                        // @ts-ignore
+                        ROOT.removeEventListener("ag-pointercancel", ...forCanc);
+
+                        // @ts-ignore
+                        ROOT.removeEventListener("ag-pointermove", ...forMove);
 
                         //
                         clearTimeout(action.timer);
@@ -789,43 +779,27 @@ export default class AxGesture {
                             .then(action.cancelRv);
                     }
 
-                    //
-                    document.documentElement.addEventListener(
-                        "ag-pointerup",
-                        // @ts-ignore
-                        ...forCanc
-                    );
-                    document.documentElement.addEventListener(
-                        "ag-pointercancel",
-                        // @ts-ignore
-                        ...forCanc
-                    );
-                    document.documentElement.addEventListener(
-                        "ag-pointermove",
-                        // @ts-ignore
-                        ...forMove
-                    );
+                    // @ts-ignore
+                    ROOT.addEventListener("ag-pointerup", ...forCanc);
+
+                    // @ts-ignore
+                    ROOT.addEventListener("ag-pointercancel", ...forCanc);
+
+                    // @ts-ignore
+                    ROOT.addEventListener("ag-pointermove", ...forMove);
                 }
             },
             {passive: false, capture: false}
         );
 
-        //
-        document.documentElement.addEventListener(
-            "ag-pointerup",
-            // @ts-ignore
-            ...registerCoord
-        );
-        document.documentElement.addEventListener(
-            "ag-pointercancel",
-            // @ts-ignore
-            ...registerCoord
-        );
-        document.documentElement.addEventListener(
-            "ag-pointermove",
-            // @ts-ignore
-            ...registerCoord
-        );
+        // @ts-ignore
+        ROOT.addEventListener("ag-pointerup", ...registerCoord);
+
+        // @ts-ignore
+        ROOT.addEventListener("ag-pointercancel", ...registerCoord);
+
+        // @ts-ignore
+        ROOT.addEventListener("ag-pointermove", ...registerCoord);
     }
 }
 
