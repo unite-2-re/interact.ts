@@ -194,7 +194,7 @@ export class AxGesture {
 
                     // stronger policy now...
                     // @ts-ignore
-                    ev.target?.setPointerCapture?.(ev.pointerId);
+                    ev?.capture?.();
                 }
             });
 
@@ -367,8 +367,10 @@ export class AxGesture {
                 });
             }
 
+            //
+            ev?.capture?.(self);
             // @ts-ignore
-            ev.target?.setPointerCapture?.(ev.pointerId);
+            //ev.target?.setPointerCapture?.(ev.pointerId);
         });
 
         //

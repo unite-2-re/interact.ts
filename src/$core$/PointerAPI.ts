@@ -86,7 +86,7 @@ export const pointerMap = new Map<number, PointerObject>([
 document.documentElement.addEventListener(
     "ag-pointerdown",
     (evc) => {
-        const ev: any = evc.detail;
+        const ev: any = evc?.detail || evc;
         if (ev.target == document.documentElement) {
             //
             const np: PointerObject = {
@@ -230,7 +230,7 @@ document.addEventListener("visibilitychange", () => {
 document.documentElement.addEventListener(
     "ag-pointermove",
     (evc) => {
-        const ev = evc.detail;
+        const ev = evc?.detail || evc;
         //if (ev.target == document.documentElement) {
         const np: PointerObject = {
             id: ev.pointerId,
@@ -333,13 +333,13 @@ document.documentElement.addEventListener(
 
 //
 export const releasePointer = (evc) => {
-    const ev = evc.detail;
+    const ev = evc?.detail || evc;
     const exists = pointerMap.get(ev.pointerId);
 
     //
     if (exists) {
         //
-        const preventClick = (e: PointerEvent | MouseEvent) => {
+        const preventClick = (e: PointerEvent | MouseEvent | CustomEvent | any) => {
             // @ts-ignore
             if (e?.pointerId == ev.pointerId) {
                 e.stopImmediatePropagation();
@@ -349,18 +349,22 @@ export const releasePointer = (evc) => {
                 //
                 document.documentElement.removeEventListener("click", ...doc);
                 document.documentElement.removeEventListener("contextmenu", ...doc);
+                document.documentElement.removeEventListener("ag-click", ...doc);
+                document.documentElement.removeEventListener("ag-contextmenu", ...doc);
 
                 // @ts-ignore
                 ev?.target?.removeEventListener?.("click", ...emt);
+                ev?.target?.removeEventListener?.("ag-click", ...emt);
 
                 // @ts-ignore
                 ev?.target?.removeEventListener?.("contextmenu", ...emt);
+                ev?.target?.removeEventListener?.("ag-contextmenu", ...emt);
             }
         };
 
         //
-        const emt: [(e: PointerEvent | MouseEvent) => any, AddEventListenerOptions] = [preventClick, {once: true}];
-        const doc: [(e: PointerEvent | MouseEvent) => any, AddEventListenerOptions] = [preventClick, {once: true, capture: true}];
+        const emt: [(e: PointerEvent | MouseEvent | CustomEvent | any) => any, AddEventListenerOptions] = [preventClick, {once: true}];
+        const doc: [(e: PointerEvent | MouseEvent | CustomEvent | any) => any, AddEventListenerOptions] = [preventClick, {once: true, capture: true}];
 
         //
         if ((exists.holding?.length || 0) > 0) {
@@ -370,12 +374,16 @@ export const releasePointer = (evc) => {
 
             //
             {
+                document.documentElement.addEventListener("ag-click", ...doc);
+                document.documentElement.addEventListener("ag-contextmenu", ...doc);
                 document.documentElement.addEventListener("click", ...doc);
                 document.documentElement.addEventListener("contextmenu", ...doc);
             }
 
             //
             setTimeout(() => {
+                document.documentElement.removeEventListener("ag-click", ...doc);
+                document.documentElement.removeEventListener("ag-contextmenu", ...doc);
                 document.documentElement.removeEventListener("click", ...doc);
                 document.documentElement.removeEventListener("contextmenu", ...doc);
             }, 100);
@@ -389,11 +397,15 @@ export const releasePointer = (evc) => {
             if (Math.hypot(...(hm.shifting || [0])) > 10 && em) {
                 em?.addEventListener?.("click", ...emt);
                 em?.addEventListener?.("contextmenu", ...emt);
+                em?.addEventListener?.("ag-click", ...emt);
+                em?.addEventListener?.("ag-contextmenu", ...emt);
 
                 //
                 setTimeout(() => {
                     em?.removeEventListener?.("click", ...emt);
                     em?.removeEventListener?.("contextmenu", ...emt);
+                    em?.removeEventListener?.("ag-click", ...emt);
+                    em?.removeEventListener?.("ag-contextmenu", ...emt);
                 }, 100);
             }
 
@@ -409,8 +421,8 @@ export const releasePointer = (evc) => {
 
             //
             em?.dispatchEvent?.(nev);
+            em?.releasePointerCapture?.(ev.pointerId);
             ev?.release?.();
-            //em?.releasePointerCapture?.(ev.pointerId);
         });
 
         //
@@ -418,6 +430,12 @@ export const releasePointer = (evc) => {
         pointerMap.delete(ev.pointerId);
     }
 };
+
+//
+document.documentElement.addEventListener("pointercancel", releasePointer, {capture: true,});
+document.documentElement.addEventListener("pointerup"    , releasePointer, {capture: true,});
+document.documentElement.addEventListener("click"        , releasePointer, {capture: true,});
+document.documentElement.addEventListener("contextmenu"  , releasePointer, {capture: true,});
 
 //
 document.documentElement.addEventListener("ag-pointercancel", releasePointer, {capture: true,});
@@ -472,7 +490,9 @@ export const grabForDrag = (
         if (ev?.pointerId != null && ev?.pointerId >= 0) {
             ev?.capture?.();
             // @ts-ignore
-            //ev?.target?.setPointerCapture?.(ev?.pointerId);
+            if (!ev?.capture) {
+                ev?.target?.setPointerCapture?.(ev?.pointerId);
+            };
         }
     }
 };
