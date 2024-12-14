@@ -84,15 +84,16 @@ export const pointerMap = new Map<number, PointerObject>([
 
 //
 document.documentElement.addEventListener(
-    "pointerdown",
-    (ev) => {
+    "ag-pointerdown",
+    (evc) => {
+        const ev: any = evc.detail;
         if (ev.target == document.documentElement) {
             //
             const np: PointerObject = {
                 id: ev.pointerId,
                 event: ev,
-                current: [ev.clientX, ev.clientY],
-                down: [ev.clientX, ev.clientY],
+                current: [...ev.orient] as [number, number],
+                down: [...ev.orient] as [number, number],
                 movement: [0, 0],
             };
 
@@ -227,13 +228,14 @@ document.addEventListener("visibilitychange", () => {
 
 //
 document.documentElement.addEventListener(
-    "pointermove",
-    (ev) => {
+    "ag-pointermove",
+    (evc) => {
+        const ev = evc.detail;
         //if (ev.target == document.documentElement) {
         const np: PointerObject = {
             id: ev.pointerId,
             event: ev,
-            current: [ev.clientX, ev.clientY],
+            current: [...ev.orient] as [number, number],
             movement: [0, 0],
         };
 
@@ -297,17 +299,17 @@ document.documentElement.addEventListener(
 
                     //
                     if (em) {
-                        em[`@data-${hm.propertyName || "drag"}-x`] = hm.modified[0];
-                        em[`@data-${hm.propertyName || "drag"}-y`] = hm.modified[1];
+                        em[`@data-${hm.propertyName || "os-drag"}-x`] = hm.modified[0];
+                        em[`@data-${hm.propertyName || "os-drag"}-y`] = hm.modified[1];
                     }
 
                     //
                     setProperty(em,
-                        `--${hm.propertyName || "drag"}-x`,
+                        `--${hm.propertyName || "os-drag"}-x`,
                         hm.modified[0] as unknown as string
                     );
                     setProperty(em,
-                        `--${hm.propertyName || "drag"}-y`,
+                        `--${hm.propertyName || "os-drag"}-y`,
                         hm.modified[1] as unknown as string
                     );
                 }
@@ -329,7 +331,8 @@ document.documentElement.addEventListener(
 );
 
 //
-export const releasePointer = (ev) => {
+export const releasePointer = (evc) => {
+    const ev = evc.detail;
     const exists = pointerMap.get(ev.pointerId);
 
     //
@@ -401,8 +404,11 @@ export const releasePointer = (ev) => {
                     holding: hm,
                 },
             });
+
+            //
             em?.dispatchEvent?.(nev);
-            em?.releasePointerCapture?.(ev.pointerId);
+            ev?.release?.();
+            //em?.releasePointerCapture?.(ev.pointerId);
         });
 
         //
@@ -412,8 +418,10 @@ export const releasePointer = (ev) => {
 };
 
 //
-document.documentElement.addEventListener("pointercancel", releasePointer, {capture: true,});
-document.documentElement.addEventListener("pointerup"    , releasePointer, {capture: true,});
+document.documentElement.addEventListener("ag-pointercancel", releasePointer, {capture: true,});
+document.documentElement.addEventListener("ag-pointerup"    , releasePointer, {capture: true,});
+document.documentElement.addEventListener("ag-click"        , releasePointer, {capture: true,});
+document.documentElement.addEventListener("ag-contextmenu"  , releasePointer, {capture: true,});
 
 //
 export const grabForDrag = (
@@ -421,7 +429,7 @@ export const grabForDrag = (
     ev: EvStub = {pointerId: 0},
     {
         shifting = [0, 0],
-        propertyName = "drag", // use dragging events for use limits
+        propertyName = "os-drag", // use dragging events for use limits
     } = {}
 ) => {
     const exists = pointerMap.get(ev.pointerId);
