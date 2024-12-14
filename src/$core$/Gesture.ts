@@ -1,5 +1,5 @@
 // @ts-ignore
-import { fixedClientZoom, orientOf } from "/externals/lib/agate.js";
+import { fixedClientZoom, orientOf, getBoundingOrientRect } from "/externals/lib/agate.js";
 import { grabForDrag, setProperty } from "./PointerAPI";
 interface InteractStatus { pointerId?: number; };
 
@@ -180,12 +180,12 @@ export class AxGesture {
 
             //
             ROOT.addEventListener("ag-pointerdown", (evc) => {
-                const ev = evc.detail;
+                const ev = evc?.detail ?? evc;
                 if (ev.target == options?.handler) {
                     swipes?.set(ev.pointerId, {
                         target: ev.target,
-                        start: [...ev.orient],
-                        current: [...ev.orient],
+                        start: [...(ev.orient || [ev?.clientX, ev?.clientY])],
+                        current: [...(ev.orient || [ev?.clientX, ev?.clientY])],
                         pointerId: ev.pointerId,
                         startTime: performance.now(),
                         time: performance.now(),
@@ -200,13 +200,13 @@ export class AxGesture {
 
             //
             const registerMove = (evc) => {
-                const ev = evc.detail;
+                const ev = evc?.detail ?? evc;
                 if (swipes?.has?.(ev.pointerId)) {
                     ev.stopPropagation();
                     const swipe = swipes?.get?.(ev.pointerId);
                     Object.assign(swipe || {}, {
                         //speed: (swipe.speed == 0 ? speed : (speed * 0.8 + swipe.speed * 0.2)),
-                        current: [...ev.orient],
+                        current: [...(ev.orient || [ev?.clientX, ev?.clientY])],
                         pointerId: ev.pointerId,
                         time: performance.now(),
                     });
@@ -345,10 +345,12 @@ export class AxGesture {
         const weak = new WeakRef(this.#holder);
         const self_w = new WeakRef(this);
         const upd_w = new WeakRef(this.#updateSize);
+        const hasOB  = handler.closest("ui-orientbox");
 
         //
-        handler.addEventListener("ag-pointerdown", (ev) => {
+        handler.addEventListener(hasOB ? "ag-pointerdown" : "pointerdown", (evc) => {
             const self = self_w?.deref();
+            const ev = evc?.detail || evc;
 
             //
             status.pointerId = ev.pointerId; try { upd_w?.deref?.call?.(self); } catch(e) {};
@@ -372,8 +374,8 @@ export class AxGesture {
         //
         this.#holder.addEventListener(
             "m-dragstart",
-            (ev) => {
-                const dt = ev.detail;
+            (evc) => {
+                const dt = evc?.detail ?? evc;
                 if (dt.holding.propertyName == "resize") {
                     //this.#resizeMute = true;
                 }
@@ -384,9 +386,9 @@ export class AxGesture {
         //
         this.#holder.addEventListener(
             "m-dragging",
-            (ev) => {
+            (evc) => {
                 const holder = weak?.deref?.() as any;
-                const dt     = ev.detail;
+                const dt     = evc?.detail ?? evc;
 
                 //
                 if (
@@ -411,8 +413,8 @@ export class AxGesture {
         //
         this.#holder.addEventListener(
             "m-dragend",
-            (ev) => {
-                const dt = ev.detail; ev?.target?.style.removeProperty("will-change");
+            (evc) => {
+                const dt = evc?.detail ?? evc; evc?.target?.style.removeProperty("will-change");
                 if (dt.holding.propertyName == "resize") {
                     status.pointerId = -1;
                     //this.#resizeMute = false;
@@ -433,9 +435,11 @@ export class AxGesture {
         const weak   = new WeakRef(this.#holder);
         const self_w = new WeakRef(this);
         const upd_w  = new WeakRef(this.#updateSize);
+        const hasOB  = handler.closest("ui-orientbox");
 
         //
-        handler.addEventListener("ag-pointerdown", (ev) => {
+        handler.addEventListener(hasOB ? "ag-pointerdown" : "pointerdown", (evc) => {
+            const ev = evc?.detail || evc;
             status.pointerId = ev.pointerId;
 
             //
@@ -447,7 +451,7 @@ export class AxGesture {
 
             //
             const shiftEv: [any, any] = [(evp) => {
-                if (evp.pointerId == ev.pointerId && !trigger) {
+                if ((evp?.detail || evp).pointerId == ev.pointerId && !trigger) {
                     trigger = true;
                     unListenShift();
 
@@ -457,7 +461,7 @@ export class AxGesture {
                         const self = self_w?.deref?.();
                         try { upd_w?.deref?.call?.(self); } catch(e) {};
                         const starting = [0, 0]
-                        grabForDrag(holder, ev, {
+                        grabForDrag(holder, (evp?.detail || evp), {
                             propertyName: "drag",
                             shifting: starting
                         });
@@ -467,24 +471,25 @@ export class AxGesture {
 
             //
             const unListenShift = (evp?) => {
-                if (!evp || evp?.pointerId == ev.pointerId) {
+                if (!evp || (evp?.detail || evp)?.pointerId == ev.pointerId) {
                     //const holder = weak?.deref?.() as any;
-                    ROOT.removeEventListener("ag-pointermove"  , ...shiftEv);
-                    ROOT.removeEventListener("ag-pointerup"    , unListenShift);
-                    ROOT.removeEventListener("ag-pointercancel", unListenShift);
+                    ROOT.removeEventListener("pointermove"  , ...shiftEv);
+                    ROOT.removeEventListener("pointerup"    , unListenShift);
+                    ROOT.removeEventListener("pointercancel", unListenShift);
                 }
             };
 
             //
-            ROOT.addEventListener("ag-pointermove"  , ...shiftEv);
-            ROOT.addEventListener("ag-pointerup"    , unListenShift);
-            ROOT.addEventListener("ag-pointercancel", unListenShift);
+            ROOT.addEventListener("pointermove"  , ...shiftEv);
+            ROOT.addEventListener("pointerup"    , unListenShift);
+            ROOT.addEventListener("pointercancel", unListenShift);
         });
 
         //
-        const cancelShift = (ev)=>{
+        const cancelShift = (evc)=>{
+            const ev = evc?.detail || evc;
             //
-            if ((ev.type == "ag-pointercancel" || ev.type == "ag-pointerup") && status.pointerId == ev?.pointerId) {
+            if ((ev.type?.includes?.("pointercancel") || ev.type?.includes?.("pointerup")) && status.pointerId == ev?.pointerId) {
                 // @ts-ignore
                 //ev.target?.releasePointerCapture?.(ev.pointerId);
                 status.pointerId = -1;
@@ -496,17 +501,17 @@ export class AxGesture {
         }
 
         //
-        ROOT.addEventListener("ag-pointerup"    , cancelShift);
-        ROOT.addEventListener("ag-pointercancel", cancelShift);
+        ROOT.addEventListener(hasOB ? "ag-pointerup"     : "pointerup", cancelShift);
+        ROOT.addEventListener(hasOB ? "ag-pointercancel" : "pointercancel", cancelShift);
 
         //
-        this.#holder.addEventListener("m-dragend", (ev) => {
+        this.#holder.addEventListener("m-dragend", (evc) => {
             const holder = weak?.deref?.() as any;
-            const box    = ev?.detail?.event?.boundingBox || holder?.getBoundingClientRect?.();
+            const box    = getBoundingOrientRect(holder) || holder?.getBoundingClientRect?.();
 
             //
-            setProperty(holder, "--os-inset-x", box?.left || 0);
-            setProperty(holder, "--os-inset-y", box?.top  || 0);
+            setProperty(holder, "--shift-x", box?.left || 0);
+            setProperty(holder, "--shift-y", box?.top  || 0);
 
             //
             setProperty(holder, "--drag-x", 0);
@@ -530,12 +535,13 @@ export class AxGesture {
     //
     longHover(options, fx = (ev) => {
         ev.target.dispatchEvent(
-            new CustomEvent("long-hover", {detail: ev, bubbles: true})
+            new CustomEvent("long-hover", {detail: ev?.detail || ev, bubbles: true})
         );
     }) {
         //const handler = options.handler || this.#holder;
         const action: any = { pointerId: -1, timer: null };
-        const initiate = (ev)=>{
+        const initiate = (evc)=>{
+            const ev = evc?.detail || evc;
             if ((ev.target.matches(options.selector) || ev.target.closest(options.selector)) && action.pointerId < 0) {
                 action.pointerId = ev.pointerId;
                 action.timer = setTimeout(()=>{
@@ -548,7 +554,8 @@ export class AxGesture {
         }
 
         //
-        const cancelEv = (ev)=>{
+        const cancelEv = (evc)=>{
+            const ev = evc?.detail || evc;
             if ((ev.target.matches(options.selector) || ev.target.closest(options.selector)) && action.pointerId == ev.pointerId) {
                 if (action.timer) { clearTimeout(action.timer); };
 
@@ -559,8 +566,8 @@ export class AxGesture {
         }
 
         //
-        ROOT.addEventListener("ag-pointerover", initiate);
-        ROOT.addEventListener("ag-pointerdown", initiate);
+        ROOT.addEventListener("ag-pointerover"  , initiate);
+        ROOT.addEventListener("ag-pointerdown"  , initiate);
         ROOT.addEventListener("ag-pointerout"   , cancelEv);
         ROOT.addEventListener("ag-pointerup"    , cancelEv);
         ROOT.addEventListener("ag-pointercancel", cancelEv);
@@ -577,7 +584,7 @@ export class AxGesture {
 
         //
         fx ||= (ev) => {
-            weak?.deref()?.dispatchEvent(new CustomEvent("long-press", {detail: ev, bubbles: true}));
+            weak?.deref()?.dispatchEvent(new CustomEvent("long-press", {detail: ev?.detail || ev, bubbles: true}));
             //requestAnimationFrame(()=>navigator?.vibrate?.([10]))
         }
 
@@ -632,10 +639,10 @@ export class AxGesture {
         const forCanc: [any, any] = [null, {capture: true}];
         const registerCoord: [any, any] = [
             (evc) => {
-                const ev = evc.detail;
+                const ev = evc?.detail || evc;
                 if (ev.pointerId == action.pointerId) {
-                    action.lastCoord[0] = ev.orient[0];
-                    action.lastCoord[1] = ev.orient[1];
+                    action.lastCoord[0] = ev?.orient[0] || ev?.clientX;
+                    action.lastCoord[1] = ev?.orient[1] || ev?.clientY;
                 }
             },
             {capture: true, passive: true},
@@ -643,10 +650,10 @@ export class AxGesture {
 
         //
         const triggerOrCancel: any = (evc) => {
-            const ev = evc.detail;
+            const ev = evc?.detail || evc;
             if (ev.pointerId == action.pointerId) {
-                action.lastCoord[0] = ev.orient[0];
-                action.lastCoord[1] = ev.orient[1];
+                action.lastCoord[0] = ev?.orient[0] || ev?.clientX;
+                action.lastCoord[1] = ev?.orient[1] || ev?.clientY;
 
                 //
                 evc?.preventDefault();
@@ -663,10 +670,10 @@ export class AxGesture {
 
         //
         const cancelWhenMove: any = (evc) => {
-            const ev = evc.detail;
+            const ev = evc?.detail || evc;
             if (ev.pointerId == action.pointerId) {
-                action.lastCoord[0] = ev.orient[0];
-                action.lastCoord[1] = ev.orient[1];
+                action.lastCoord[0] = ev?.orient[0] || ev?.clientX;
+                action.lastCoord[1] = ev?.orient[1] || ev?.clientY;
 
                 //
                 evc?.preventDefault();
@@ -687,7 +694,7 @@ export class AxGesture {
         ROOT.addEventListener(
             "ag-pointerdown",
             (evc) => {
-                const ev = evc.detail;
+                const ev = evc?.detail ?? evc;
                 if (
                     (weak?.deref()?.contains(ev?.target as HTMLElement) && (options.handler ? (ev?.target as HTMLElement).matches(options.handler) : false) || (ev?.target == weak?.deref())) &&
                     action.pointerId < 0 &&
@@ -697,8 +704,8 @@ export class AxGesture {
                     evc?.stopPropagation?.();
 
                     //
-                    action.pageCoord = [...ev.orient];
-                    action.lastCoord = [...ev.orient];
+                    action.pageCoord = [...(ev?.orient || [ev?.clientX, ev?.clientY])];
+                    action.lastCoord = [...(ev?.orient || [ev?.clientX, ev?.clientY])];
                     action.pointerId = ev.pointerId;
 
                     //
