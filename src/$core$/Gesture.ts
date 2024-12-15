@@ -509,7 +509,7 @@ export class AxGesture {
         //
         this.#holder.addEventListener("m-dragend", (evc) => {
             const holder = weak?.deref?.() as any;
-            const box    = getBoundingOrientRect(holder) || holder?.getBoundingClientRect?.();
+            const box    = evc?.detail?.event?.boundingBox || getBoundingOrientRect(holder) || holder?.getBoundingClientRect?.();
 
             //
             setProperty(holder, "--shift-x", box?.left || 0);
