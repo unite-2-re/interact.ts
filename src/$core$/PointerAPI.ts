@@ -422,8 +422,10 @@ export const releasePointer = (evc) => {
             //
             em?.dispatchEvent?.(nev);
             em?.releasePointerCapture?.(ev.pointerId);
-            ev?.release?.();
         });
+
+        //
+        if ((exists?.holding?.length||0) > 0) { ev?.release?.(); };
 
         //
         exists.holding = [];
