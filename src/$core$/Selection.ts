@@ -20,12 +20,10 @@ const getPadding = (element?: HTMLElement | null | undefined): [number, number]=
     return [0, 0];
 }
 
-
+//
 export const makeSelection = (boxElement, selector = "*")=>{
     const state = { pointerId: -1, start: [0, 0] };
     const selectionBox = document.createElement("div");
-
-    //
     const selected = new Set<HTMLElement>([]);
     /*const observer = new IntersectionObserver((entries)=>{
         entries.forEach((entry)=>{
@@ -130,7 +128,6 @@ export const makeSelection = (boxElement, selector = "*")=>{
         if (state.pointerId == ev.pointerId) {
             const $style$ = selectionBox.style;
             const ofp = selectionBox.offsetParent as HTMLElement;
-            const box = ofp?.getBoundingClientRect();
             const com = getPadding(ofp);
 
             //
