@@ -204,14 +204,13 @@ export const grabForDrag = (
 
     //
     const hm: any = {
-        movement: [0, 0],
-        element: new WeakRef(em),
-        propertyName,
+        movement: [...(ex?.movement || [0, 0])],
         shifting: [...shifting],
         modified: [...shifting],
         canceled: false,
+        element: new WeakRef(em),
+        propertyName,
         origin: null
-        //origin: [...(ex?.orient || [ex?.clientX || 0, ex?.clientY || 0] || [0, 0])]
     };
 
     //
@@ -221,15 +220,10 @@ export const grabForDrag = (
             if (ev.target && !(ev.target.contains(em) || em.contains(ev.target) || ev.target == em)) { return; };
 
             //
-            if (hm.origin) {
-                hm.movement[0] = ev.orient[0] - hm.origin[0];
-                hm.movement[1] = ev.orient[1] - hm.origin[1];
-            }
-
-            //
-            hm.origin = [...(ev?.orient || [ev?.clientX || 0, ev?.clientY || 0] || [0, 0])];
+            hm.movement = [...(ex?.movement || (hm.origin ? [ev.orient[0] - hm.origin[0], ev.orient[1] - hm.origin[1]] : hm.movement))];
+            hm.origin   = [...(ev?.orient || [ev?.clientX || 0, ev?.clientY || 0] || [0, 0])];
             hm.shifting[0] += hm.movement[0], hm.shifting[1] += hm.movement[1];
-            hm.modified[0] = hm.shifting[0], hm.modified[1] = hm.shifting[1];
+            hm.modified[0]  = hm.shifting[0], hm.modified[1]  = hm.shifting[1];
 
             //
             last = ev; changed = true;
