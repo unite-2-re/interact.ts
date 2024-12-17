@@ -1,5 +1,5 @@
 // @ts-ignore
-import { fixedClientZoom, orientOf, getBoundingOrientRect } from "/externals/lib/agate.js";
+import { fixedClientZoom, orientOf, getBoundingOrientRect } from "/externals/core/agate.js";
 import { grabForDrag, setProperty } from "./PointerAPI";
 interface InteractStatus { pointerId?: number; };
 
