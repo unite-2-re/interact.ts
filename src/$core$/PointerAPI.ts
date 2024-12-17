@@ -218,7 +218,7 @@ export const grabForDrag = (
     const moveEvent = [(evc)=>{
         const ev = evc?.detail || evc;
         if (ex?.pointerId == ev?.pointerId) {
-            if (ev.target && !(ev.target.contains(em) || ev.target == em)) { return; };
+            if (ev.target && !(ev.target.contains(em) || em.contains(ev.target) || ev.target == em)) { return; };
 
             //
             if (hm.origin) {
@@ -240,7 +240,7 @@ export const grabForDrag = (
     const releaseEvent = [(evc)=>{
         const ev = evc?.detail || evc;
         if (ex?.pointerId == ev?.pointerId) {
-            if (ev.target && !(ev.target.contains(em) || ev.target == em)) { return; };
+            if (ev.target && !(ev.target.contains(em) || em.contains(ev.target) || ev.target == em)) { return; };
 
             //
             hm.canceled = true;
@@ -252,8 +252,7 @@ export const grabForDrag = (
             ev?.release?.(em);
 
             //
-            changed = false;
-            last = ev; clickPrevention(em, ev?.pointerId);
+            changed = false; last = ev; clickPrevention(em, ev?.pointerId);
             em?.dispatchEvent?.(new CustomEvent("m-dragend", {
                 bubbles: true,
                 detail: {
