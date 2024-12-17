@@ -375,18 +375,6 @@ export class AxGesture {
 
         //
         this.#holder.addEventListener(
-            "m-dragstart",
-            (evc) => {
-                const dt = evc?.detail ?? evc;
-                if (dt.holding.propertyName == "resize") {
-                    //this.#resizeMute = true;
-                }
-            },
-            {capture: true, passive: false}
-        );
-
-        //
-        this.#holder.addEventListener(
             "m-dragging",
             (evc) => {
                 const holder = weak?.deref?.() as any;
@@ -395,7 +383,7 @@ export class AxGesture {
                 //
                 if (
                     holder &&
-                    dt.pointer.id == status.pointerId &&
+                    dt.event.pointerId == status.pointerId &&
                     dt.holding.propertyName == "resize" &&
                     dt.holding.element.deref() == holder
                 ) {
@@ -426,7 +414,7 @@ export class AxGesture {
         );
     }
 
-    //
+    // OBSOLETE! Due of critical issues...
     draggable(options) {
         const handler = options.handler ?? this.#holder;
         const status: InteractStatus = {
@@ -509,7 +497,7 @@ export class AxGesture {
         //
         this.#holder.addEventListener("m-dragend", (evc) => {
             const holder = weak?.deref?.() as any;
-            const box    = evc?.detail?.event?.boundingBox || getBoundingOrientRect(holder) || holder?.getBoundingClientRect?.();
+            const box    = getBoundingOrientRect(holder) || holder?.getBoundingClientRect?.();
 
             //
             setProperty(holder, "--shift-x", box?.left || 0);

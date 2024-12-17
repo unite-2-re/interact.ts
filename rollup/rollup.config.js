@@ -100,7 +100,7 @@ export const TSConfig = {
         "noImplicitThis": false,
         "inlineSources": true,
         "inlineSourceMap": true,
-        "sourceMap": false,
+        "sourceMap": true,
         "outDir": "./dist/",
         "declarationDir": "./dist/"+NAME+".d.ts/",
         //"allowImportingTsExtensions": true,
@@ -112,7 +112,7 @@ export const TSConfig = {
 //
 export const plugins = [
     typescript(TSConfig),
-    terser(terserOptions),
+    //terser(terserOptions),
     optimizer({}),
     compression(),
     createExternal({
@@ -149,4 +149,5 @@ export const rollupOptions = {
 	}
 };
 
+//
 export default rollupOptions;

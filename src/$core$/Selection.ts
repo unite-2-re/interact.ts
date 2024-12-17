@@ -1,3 +1,4 @@
+
 //
 const getPadding = (element?: HTMLElement | null | undefined): [number, number]=>{
     if (element) {
@@ -96,35 +97,7 @@ export const makeSelection = (boxElement, selector = "*")=>{
     $style$.setProperty("pointer-events", "none", "");
 
     //
-    boxElement.appendChild(selectionBox);
-    boxElement.addEventListener("pointerdown", (ev)=>{
-        if (state.pointerId < 0 && ev.target == boxElement) {
-            ev.stopPropagation();
-            ev.preventDefault();
-
-            //
-            state.pointerId = ev.pointerId;
-            state.start = [ev.clientX, ev.clientY];
-            //boxElement.querySelectorAll(selector).forEach((el)=>observer.observe(el));
-
-            //
-            const ofp = selectionBox.offsetParent as HTMLElement;
-            const box = ofp?.getBoundingClientRect();
-            const com = getPadding(ofp);
-
-            //
-            const $style$ = selectionBox.style;
-            $style$.setProperty("inset-inline-start", `${state.start[0] - (ofp?.offsetLeft || 0) - (com?.[0] || 0)}px`, "");
-            $style$.setProperty("inset-block-start", `${state.start[1] - (ofp?.offsetTop || 0) - (com?.[1] || 0)}px`, "");
-            $style$.setProperty("display", "block", "");
-
-            //
-            ev?.target?.setPointerCapture?.(ev.pointerId);
-        }
-    });
-
-    //
-    document.documentElement.addEventListener("pointermove", (ev)=>{
+    const doSelection = (ev)=>{
         if (state.pointerId == ev.pointerId) {
             const $style$ = selectionBox.style;
             const ofp = selectionBox.offsetParent as HTMLElement;
@@ -150,6 +123,35 @@ export const makeSelection = (boxElement, selector = "*")=>{
             });
             selected.clear();
         }
+    }
+
+    //
+    boxElement.appendChild(selectionBox);
+    boxElement.addEventListener("pointerdown", (ev)=>{
+        if (state.pointerId < 0 && ev.target == boxElement) {
+            ev.stopPropagation();
+            ev.preventDefault();
+
+            //
+            state.pointerId = ev.pointerId;
+            state.start = [ev.clientX, ev.clientY];
+
+            //
+            const ofp = selectionBox.offsetParent as HTMLElement;
+            const com = getPadding(ofp);
+
+            //
+            const $style$ = selectionBox.style;
+            $style$.setProperty("inset-inline-start", `${state.start[0] - (ofp?.offsetLeft || 0) - (com?.[0] || 0)}px`, "");
+            $style$.setProperty("inset-block-start", `${state.start[1] - (ofp?.offsetTop || 0) - (com?.[1] || 0)}px`, "");
+            $style$.setProperty("display", "block", "");
+
+            //
+            boxElement?.setPointerCapture?.(ev.pointerId);
+            boxElement?.addEventListener?.("pointermove", doSelection);
+            boxElement?.addEventListener?.("pointerup", stopSelection);
+            boxElement?.addEventListener?.("pointercancel", stopSelection);
+        }
     });
 
     //
@@ -171,10 +173,13 @@ export const makeSelection = (boxElement, selector = "*")=>{
             document.body.style.removeProperty("cursor");
 
             //
-            ev?.target?.releasePointerCapture?.(ev.pointerId);
-            //observer?.disconnect?.();
+            boxElement?.removeEventListener?.("pointermove", doSelection);
+            boxElement?.removeEventListener?.("pointerup", stopSelection);
+            boxElement?.removeEventListener?.("pointercancel", stopSelection);
+            boxElement?.releasePointerCapture?.(ev.pointerId);
 
             //
+            //clickPrevention?.(boxElement);
             selected.values()?.forEach?.((el: HTMLElement)=>{
                 el?.dispatchEvent?.(new CustomEvent("u2-selected", {
                     detail: { selected: [...selected] },
@@ -185,8 +190,4 @@ export const makeSelection = (boxElement, selector = "*")=>{
             selected.clear();
         }
     };
-
-    //
-    document.documentElement.addEventListener("pointerup", stopSelection);
-    document.documentElement.addEventListener("pointercancel", stopSelection);
 }

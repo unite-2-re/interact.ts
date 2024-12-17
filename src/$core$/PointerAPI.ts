@@ -131,8 +131,6 @@ export const setProperty = (target, name, value, importance = "")=>{
     }
 }
 
-
-
 //
 const clickPrevention = (element, pointerId = 0)=>{
     //
@@ -192,6 +190,7 @@ const clickPrevention = (element, pointerId = 0)=>{
 }
 
 //
+export const pointerMap = new Map([]);
 export const grabForDrag = (
     em,
     ex: any = {pointerId: 0},
@@ -200,25 +199,20 @@ export const grabForDrag = (
         propertyName = "drag", // use dragging events for use limits
     } = {}
 ) => {
+    let last: any = ex?.detail || ex;
+    let changed: boolean = false;
 
     //
-    const hm = {
+    const hm: any = {
+        movement: [0, 0],
+        element: new WeakRef(em),
         propertyName,
-        modified: shifting,
+        shifting: [...shifting],
+        modified: [...shifting],
         canceled: false,
-        origin: [...ex?.orient]
+        origin: null
+        //origin: [...(ex?.orient || [ex?.clientX || 0, ex?.clientY || 0] || [0, 0])]
     };
-
-    //
-    ex?.capture?.(em);
-    em?.setCapturePointer?.(ex?.pointerId);
-    em?.dispatchEvent?.(new CustomEvent("m-dragstart", {
-        bubbles: true,
-        detail: {
-            event: ex,
-            holding: hm,
-        },
-    }));
 
     //
     const moveEvent = [(evc)=>{
@@ -227,72 +221,90 @@ export const grabForDrag = (
             if (ev.target && !(ev.target.contains(em) || ev.target == em)) { return; };
 
             //
-            const movement = [ev.orient[0] - hm.origin[0], ev.orient[1] - hm.origin[1]];
-            hm.modified[0] += movement[0], hm.modified[1] += movement[1];
-            hm.origin[0] = ev.orient[0], hm.origin[1] = ev.orient[1];
+            if (hm.origin) {
+                hm.movement[0] = ev.orient[0] - hm.origin[0];
+                hm.movement[1] = ev.orient[1] - hm.origin[1];
+            }
 
             //
-            if (hm.modified && Math.hypot(...movement) >= 0.001) {
-                em?.dispatchEvent?.(new CustomEvent("m-dragging", {
-                    bubbles: true,
-                    detail: {
-                        event: ev,
-                        holding: hm,
-                    },
-                }));
-            }
+            hm.origin = [...(ev?.orient || [ev?.clientX || 0, ev?.clientY || 0] || [0, 0])];
+            hm.shifting[0] += hm.movement[0], hm.shifting[1] += hm.movement[1];
+            hm.modified[0] = hm.shifting[0], hm.modified[1] = hm.shifting[1];
+
+            //
+            last = ev; changed = true;
         }
-    }];
+    }, {capture: true}];
 
     //
     const releaseEvent = [(evc)=>{
         const ev = evc?.detail || evc;
         if (ex?.pointerId == ev?.pointerId) {
+            if (ev.target && !(ev.target.contains(em) || ev.target == em)) { return; };
 
             //
-            const movement = [ev.orient[0] - hm.origin[0], ev.orient[1] - hm.origin[1]];
-            hm.modified[0] += movement[0], hm.modified[1] += movement[1];
-            hm.origin[0] = ev.orient[0], hm.origin[1] = ev.orient[1];
             hm.canceled = true;
-
-            //
-            ev?.release?.(em);
-            em?.releaseCapturePointer?.(ev?.pointerId);
             em?.removeEventListener?.("ag-pointermove", ...moveEvent);
             em?.removeEventListener?.("ag-pointercancel", ...releaseEvent);
             em?.removeEventListener?.("ag-pointerup", ...releaseEvent);
             em?.removeEventListener?.("ag-click", ...releaseEvent);
-            clickPrevention(em, ex?.pointerId);
+            em?.releaseCapturePointer?.(ev?.pointerId);
+            ev?.release?.(em);
+
+            //
+            changed = false;
+            last = ev; clickPrevention(em, ev?.pointerId);
             em?.dispatchEvent?.(new CustomEvent("m-dragend", {
                 bubbles: true,
                 detail: {
-                    event: ev,
+                    event: last,
                     holding: hm,
                 },
             }));
         }
-    }];
+    }, {capture: true}];
 
     //
-    em?.addEventListener?.("ag-pointermove", ...moveEvent);
-    em?.addEventListener?.("ag-pointercancel", ...releaseEvent);
-    em?.addEventListener?.("ag-pointerup", ...releaseEvent);
-    em?.addEventListener?.("ag-click", ...releaseEvent);
+    if (em?.dispatchEvent?.(new CustomEvent("m-dragstart", { bubbles: true, detail: { event: last, holding: hm }}))) {
+        ex?.capture?.(em);
+        em?.setPointerCapture?.(ex?.pointerId);
+        em?.addEventListener?.("ag-pointermove", ...moveEvent);
+        em?.addEventListener?.("ag-pointercancel", ...releaseEvent);
+        em?.addEventListener?.("ag-pointerup", ...releaseEvent);
+        em?.addEventListener?.("ag-click", ...releaseEvent);
+    } else {
+        hm.canceled = true;
+    }
 
     //
     (async ()=>{
-        //
-        setProperty(em,
-            `--${hm.propertyName || "drag"}-x`,
-            hm.modified[0] as unknown as string
-        );
-        setProperty(em,
-            `--${hm.propertyName || "drag"}-y`,
-            hm.modified[1] as unknown as string
-        );
+        while (!hm.canceled) {
 
-        //
-        if (!hm.canceled) {
+            //
+            if (changed) {
+                changed = false;
+
+                //
+                em?.dispatchEvent?.(new CustomEvent("m-dragging", {
+                    bubbles: true,
+                    detail: {
+                        event: last,
+                        holding: hm,
+                    },
+                }));
+
+                //
+                setProperty(em,
+                    `--${hm.propertyName || "drag"}-x`,
+                    hm.modified[0] as unknown as string
+                );
+                setProperty(em,
+                    `--${hm.propertyName || "drag"}-y`,
+                    hm.modified[1] as unknown as string
+                );
+            }
+
+            //
             await new Promise((r)=>requestAnimationFrame(r));
         }
     })();
