@@ -66,74 +66,6 @@ interface PointerObject {
 };
 
 //
-export const pointerMap = new Map<number, PointerObject>([
-    /*[
-        -1,
-        {
-            id: -1,
-            movement: [],
-            down: [],
-            current: [],
-            event: null,
-
-            //
-            holding: [],
-        },
-    ],*/
-]);
-
-//
-document.documentElement.addEventListener(
-    "ag-pointerdown",
-    (evc) => {
-        const ev: any = evc?.detail || evc;
-        if (ev.target == document.documentElement) {
-            //
-            const np: PointerObject = {
-                id: ev.pointerId,
-                event: ev,
-                current: [...ev.orient] as [number, number],
-                down: [...ev.orient] as [number, number],
-                movement: [0, 0],
-            };
-
-            //
-            const exists = (pointerMap.has(ev.pointerId)
-                ? pointerMap.get(ev.pointerId)
-                : np) || np;
-
-            //
-            np.movement[0] = np.current[0] - exists.current[0];
-            np.movement[1] = np.current[1] - exists.current[1];
-
-            //
-            if (!exists.holding) {
-                exists.holding = [];
-            }
-
-            //
-            exists.holding.forEach((hm) => {
-                hm.shifting = [...(hm.modified || hm.shifting || [0, 0])];
-            });
-
-            //
-            if (!exists.edges) {
-                exists.edges = new PointerEdge(np.current);
-            }
-
-            //
-            Object.assign(exists, np);
-
-            //
-            if (!pointerMap.has(ev.pointerId)) {
-                pointerMap.set(ev.pointerId, exists);
-            }
-        }
-    },
-    {capture: true}
-);
-
-//
 regProp?.({
     name: "--resize-x",
     syntax: "<number>",
@@ -199,302 +131,169 @@ export const setProperty = (target, name, value, importance = "")=>{
     }
 }
 
+
+
 //
-const delayed = new Map<number, Function | null>([]);
-requestIdleCallback(async ()=>{
-    while(true) {
-        for (const dl of delayed.entries()) {
-            dl[1]?.(); delayed.delete(dl[0]);
+const clickPrevention = (element, pointerId = 0)=>{
+    //
+    const preventClick = (e: PointerEvent | MouseEvent | CustomEvent | any) => {
+        // @ts-ignore
+        if (e?.pointerId == pointerId) {
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+            e.preventDefault();
+
+            //
+            document.documentElement.removeEventListener("click", ...doc);
+            document.documentElement.removeEventListener("contextmenu", ...doc);
+            document.documentElement.removeEventListener("ag-click", ...doc);
+            document.documentElement.removeEventListener("ag-contextmenu", ...doc);
+
+            //
+            element?.removeEventListener?.("click", ...emt);
+            element?.removeEventListener?.("ag-click", ...emt);
+            element?.removeEventListener?.("contextmenu", ...emt);
+            element?.removeEventListener?.("ag-contextmenu", ...emt);
         }
+    };
+
+    //
+    const emt: [(e: PointerEvent | MouseEvent | CustomEvent | any) => any, AddEventListenerOptions] = [preventClick, {once: true}];
+    const doc: [(e: PointerEvent | MouseEvent | CustomEvent | any) => any, AddEventListenerOptions] = [preventClick, {once: true, capture: true}];
+
+    //
+    {
+        document.documentElement.addEventListener("ag-click", ...doc);
+        document.documentElement.addEventListener("ag-contextmenu", ...doc);
+        document.documentElement.addEventListener("click", ...doc);
+        document.documentElement.addEventListener("contextmenu", ...doc);
+    }
+
+    {   //
+        element?.addEventListener?.("click", ...emt);
+        element?.addEventListener?.("ag-click", ...emt);
+        element?.addEventListener?.("contextmenu", ...emt);
+        element?.addEventListener?.("ag-contextmenu", ...emt);
+    }
+
+    //
+    setTimeout(() => {
+        element?.removeEventListener?.("click", ...emt);
+        element?.removeEventListener?.("ag-click", ...emt);
+        element?.removeEventListener?.("contextmenu", ...emt);
+        element?.removeEventListener?.("ag-contextmenu", ...emt);
 
         //
-        try { await (new Promise((rs)=>requestAnimationFrame(rs))); } catch(e) { break; };
-    }
-}, {timeout: 1000});
-
-//
-const callByFrame = (pointerId, cb)=>{
-    delayed.set(pointerId, cb);
+        document.documentElement.removeEventListener("ag-click", ...doc);
+        document.documentElement.removeEventListener("ag-contextmenu", ...doc);
+        document.documentElement.removeEventListener("click", ...doc);
+        document.documentElement.removeEventListener("contextmenu", ...doc);
+    }, 100);
 }
 
 //
-addEventListener("beforeunload", (event) => { delayed.clear(); pointerMap.clear(); });
-addEventListener("pagehide", (event) => { delayed.clear(); pointerMap.clear(); });
-
-//
-document.addEventListener("visibilitychange", () => {
-    if (document.hidden) { delayed.clear(); pointerMap.clear(); };
-});
-
-//
-document.documentElement.addEventListener(
-    "ag-pointermove",
-    (evc) => {
-        const ev = evc?.detail || evc;
-        //if (ev.target == document.documentElement) {
-        const np: PointerObject = {
-            id: ev.pointerId,
-            event: ev,
-            current: [...ev.orient] as [number, number],
-            movement: [0, 0],
-        };
-
-        //
-        const exists = (pointerMap.has(ev.pointerId)
-            ? pointerMap.get(ev.pointerId)
-            : np) || np;
-        np.movement[0] = np.current[0] - exists.current[0];
-        np.movement[1] = np.current[1] - exists.current[1];
-
-        //
-        if (!exists.holding) {
-            exists.holding = [];
-        }
-
-        //
-        if ((exists.holding.length || 0) > 0) {
-            evc?.stopImmediatePropagation?.();
-            evc?.stopPropagation?.();
-            evc?.preventDefault?.();
-        }
-
-        //
-        if (!exists.edges) {
-            exists.edges = new PointerEdge(np.current);
-        }
-
-        //
-        Object.assign(exists, np);
-
-        //
-        if (!pointerMap.has(ev.pointerId)) {
-            pointerMap.set(ev.pointerId, exists);
-        }
-
-        //
-        exists.holding.forEach((hm) => {
-            if (hm.shifting) {
-                hm.shifting[0] += np.movement[0];
-                hm.shifting[1] += np.movement[1];
-                hm.modified = [...hm.shifting];
-            }
-        });
-
-        //
-        callByFrame(ev.pointerId, ()=>{
-            exists?.holding?.forEach((hm) => {
-                const em = hm.element?.deref();
-                if (ev.target && !(ev.target.contains(em) || ev.target == em)) { return; };
-                if (hm.modified && Math.hypot(...np.movement) >= 0.001) {
-                    //
-                    const nev = new CustomEvent("m-dragging", {
-                        bubbles: true,
-                        detail: {
-                            event: ev,
-                            pointer: exists,
-                            holding: hm,
-                        },
-                    });
-
-                    //
-                    em?.dispatchEvent?.(nev);
-
-                    //
-                    if (em) {
-                        em[`@data-${hm.propertyName || "drag"}-x`] = hm.modified[0];
-                        em[`@data-${hm.propertyName || "drag"}-y`] = hm.modified[1];
-                    }
-
-                    //
-                    setProperty(em,
-                        `--${hm.propertyName || "drag"}-x`,
-                        hm.modified[0] as unknown as string
-                    );
-                    setProperty(em,
-                        `--${hm.propertyName || "drag"}-y`,
-                        hm.modified[1] as unknown as string
-                    );
-                }
-            });
-        });
-
-        //
-        ["left", "top", "right", "bottom"].forEach((side) => {
-            if (exists?.edges?.results?.[side] != exists?.edges?.[side]) {
-                const nev = new CustomEvent(
-                    (exists.edges?.[side] ? "m-contact-" : "m-leave-") + side,
-                    {detail: exists}
-                );
-                document?.dispatchEvent?.(nev);
-            }
-        });
-    },
-    {capture: true}
-);
-
-//
-export const releasePointer = (evc) => {
-    const ev = evc?.detail || evc;
-    const exists = pointerMap.get(ev.pointerId);
-
-    //
-    if (exists) {
-        //
-        const preventClick = (e: PointerEvent | MouseEvent | CustomEvent | any) => {
-            // @ts-ignore
-            if (e?.pointerId == ev.pointerId) {
-                e.stopImmediatePropagation();
-                e.stopPropagation();
-                e.preventDefault();
-
-                //
-                document.documentElement.removeEventListener("click", ...doc);
-                document.documentElement.removeEventListener("contextmenu", ...doc);
-                document.documentElement.removeEventListener("ag-click", ...doc);
-                document.documentElement.removeEventListener("ag-contextmenu", ...doc);
-
-                // @ts-ignore
-                ev?.target?.removeEventListener?.("click", ...emt);
-                ev?.target?.removeEventListener?.("ag-click", ...emt);
-
-                // @ts-ignore
-                ev?.target?.removeEventListener?.("contextmenu", ...emt);
-                ev?.target?.removeEventListener?.("ag-contextmenu", ...emt);
-            }
-        };
-
-        //
-        const emt: [(e: PointerEvent | MouseEvent | CustomEvent | any) => any, AddEventListenerOptions] = [preventClick, {once: true}];
-        const doc: [(e: PointerEvent | MouseEvent | CustomEvent | any) => any, AddEventListenerOptions] = [preventClick, {once: true, capture: true}];
-
-        //
-        if ((exists.holding?.length || 0) > 0) {
-            //ev.stopImmediatePropagation();
-            //ev.stopPropagation();
-            evc?.preventDefault?.();
-
-            //
-            {
-                document.documentElement.addEventListener("ag-click", ...doc);
-                document.documentElement.addEventListener("ag-contextmenu", ...doc);
-                document.documentElement.addEventListener("click", ...doc);
-                document.documentElement.addEventListener("contextmenu", ...doc);
-            }
-
-            //
-            setTimeout(() => {
-                document.documentElement.removeEventListener("ag-click", ...doc);
-                document.documentElement.removeEventListener("ag-contextmenu", ...doc);
-                document.documentElement.removeEventListener("click", ...doc);
-                document.documentElement.removeEventListener("contextmenu", ...doc);
-            }, 100);
-        }
-
-        //
-        (exists.holding || []).forEach((hm) => {
-            const em = hm.element?.deref();
-            if (ev.target && !(ev.target.contains(em) || ev.target == em)) { return; };
-            if (Math.hypot(...(hm.shifting || [0])) > 10 && em) {
-                em?.addEventListener?.("click", ...emt);
-                em?.addEventListener?.("contextmenu", ...emt);
-                em?.addEventListener?.("ag-click", ...emt);
-                em?.addEventListener?.("ag-contextmenu", ...emt);
-
-                //
-                setTimeout(() => {
-                    em?.removeEventListener?.("click", ...emt);
-                    em?.removeEventListener?.("contextmenu", ...emt);
-                    em?.removeEventListener?.("ag-click", ...emt);
-                    em?.removeEventListener?.("ag-contextmenu", ...emt);
-                }, 100);
-            }
-
-            //
-            const nev = new CustomEvent("m-dragend", {
-                bubbles: true,
-                detail: {
-                    event: ev,
-                    pointer: exists,
-                    holding: hm,
-                },
-            });
-
-            //
-            em?.dispatchEvent?.(nev);
-            em?.releasePointerCapture?.(ev.pointerId);
-        });
-
-        //
-        if ((exists?.holding?.length||0) > 0) { ev?.release?.(); };
-
-        //
-        exists.holding = [];
-        pointerMap.delete(ev.pointerId);
-    }
-};
-
-//
-document.documentElement.addEventListener("pointercancel", releasePointer, {capture: true,});
-document.documentElement.addEventListener("pointerup"    , releasePointer, {capture: true,});
-document.documentElement.addEventListener("click"        , releasePointer, {capture: true,});
-document.documentElement.addEventListener("contextmenu"  , releasePointer, {capture: true,});
-
-//
-document.documentElement.addEventListener("ag-pointercancel", releasePointer, {capture: true,});
-document.documentElement.addEventListener("ag-pointerup"    , releasePointer, {capture: true,});
-document.documentElement.addEventListener("ag-click"        , releasePointer, {capture: true,});
-document.documentElement.addEventListener("ag-contextmenu"  , releasePointer, {capture: true,});
-
-//
 export const grabForDrag = (
-    element,
-    ev: any = {pointerId: 0},
+    em,
+    ex: any = {pointerId: 0},
     {
         shifting = [0, 0],
         propertyName = "drag", // use dragging events for use limits
     } = {}
 ) => {
-    const exists = pointerMap.get(ev.pointerId);
-    if (exists) {
-        exists.event = ev;
 
+    //
+    const hm = {
+        propertyName,
+        modified: shifting,
+        canceled: false,
+        origin: [...ex?.orient]
+    };
+
+    //
+    ex?.capture?.(em);
+    em?.setCapturePointer?.(ex?.pointerId);
+    em?.dispatchEvent?.(new CustomEvent("m-dragstart", {
+        bubbles: true,
+        detail: {
+            event: ex,
+            holding: hm,
+        },
+    }));
+
+    //
+    const moveEvent = [(evc)=>{
+        const ev = evc?.detail || evc;
+        if (ex?.pointerId == ev?.pointerId) {
+            if (ev.target && !(ev.target.contains(em) || ev.target == em)) { return; };
+
+            //
+            const movement = [ev.orient[0] - hm.origin[0], ev.orient[1] - hm.origin[1]];
+            hm.modified[0] += movement[0], hm.modified[1] += movement[1];
+            hm.origin[0] = ev.orient[0], hm.origin[1] = ev.orient[1];
+
+            //
+            if (hm.modified && Math.hypot(...movement) >= 0.001) {
+                em?.dispatchEvent?.(new CustomEvent("m-dragging", {
+                    bubbles: true,
+                    detail: {
+                        event: ev,
+                        holding: hm,
+                    },
+                }));
+            }
+        }
+    }];
+
+    //
+    const releaseEvent = [(evc)=>{
+        const ev = evc?.detail || evc;
+        if (ex?.pointerId == ev?.pointerId) {
+
+            //
+            const movement = [ev.orient[0] - hm.origin[0], ev.orient[1] - hm.origin[1]];
+            hm.modified[0] += movement[0], hm.modified[1] += movement[1];
+            hm.origin[0] = ev.orient[0], hm.origin[1] = ev.orient[1];
+            hm.canceled = true;
+
+            //
+            ev?.release?.(em);
+            em?.releaseCapturePointer?.(ev?.pointerId);
+            em?.removeEventListener?.("ag-pointermove", ...moveEvent);
+            em?.removeEventListener?.("ag-pointercancel", ...releaseEvent);
+            em?.removeEventListener?.("ag-pointerup", ...releaseEvent);
+            em?.removeEventListener?.("ag-click", ...releaseEvent);
+            clickPrevention(em, ex?.pointerId);
+            em?.dispatchEvent?.(new CustomEvent("m-dragend", {
+                bubbles: true,
+                detail: {
+                    event: ev,
+                    holding: hm,
+                },
+            }));
+        }
+    }];
+
+    //
+    em?.addEventListener?.("ag-pointermove", ...moveEvent);
+    em?.addEventListener?.("ag-pointercancel", ...releaseEvent);
+    em?.addEventListener?.("ag-pointerup", ...releaseEvent);
+    em?.addEventListener?.("ag-click", ...releaseEvent);
+
+    //
+    (async ()=>{
         //
-        const ex = (exists.holding || []).find((hm) =>
-            hm.element?.deref?.() == element &&
-            hm.propertyName == propertyName
+        setProperty(em,
+            `--${hm.propertyName || "drag"}-x`,
+            hm.modified[0] as unknown as string
+        );
+        setProperty(em,
+            `--${hm.propertyName || "drag"}-y`,
+            hm.modified[1] as unknown as string
         );
 
         //
-        const prop: any = Object.assign(ex || {}, {
-            propertyName,
-            element: new WeakRef(element),
-            shifting: [...(shifting || ex?.shifting || ex?.modified || [])],
-        })
-
-        //
-        if (!ex) (exists.holding || []).push(prop);
-
-        // pls, assign "ev.detail.holding.shifting" to initial value (f.e. "ev.detail.holding.modified")
-        // note about "ev.detail.holding.element is WeakRef, so use ".deref()"
-        const nev = new CustomEvent("m-dragstart", {
-            bubbles: true,
-            detail: {
-                event: ev,
-                pointer: exists,
-                holding: prop,
-            },
-        });
-
-        //
-        element?.dispatchEvent?.(nev);
-
-        //
-        if (ev?.pointerId != null && ev?.pointerId >= 0) {
-            ev?.capture?.();
-            // @ts-ignore
-            if (!ev?.capture) {
-                ev?.target?.setPointerCapture?.(ev?.pointerId);
-            };
+        if (!hm.canceled) {
+            await new Promise((r)=>requestAnimationFrame(r));
         }
-    }
+    })();
 };
