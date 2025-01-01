@@ -129,7 +129,7 @@ export const makeSelection = (boxElement, selector = "*")=>{
     boxElement.appendChild(selectionBox);
     boxElement.addEventListener("pointerdown", (ev)=>{
         if (state.pointerId < 0 && ev.target == boxElement) {
-            ev.stopPropagation();
+            //ev.stopPropagation();
             ev.preventDefault();
 
             //
