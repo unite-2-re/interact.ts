@@ -201,6 +201,14 @@ export const grabForDrag = (
 ) => {
     let last: any = ex?.detail || ex;
     let changed: boolean = false;
+    let frameTime = 0.01, lastLoop = performance.now(), thisLoop;
+    const filterStrength = 100;
+    const computeDuration = () => {
+        var thisFrameTime = (thisLoop=performance.now()) - lastLoop;
+        frameTime += (thisFrameTime - frameTime) / filterStrength;
+        lastLoop = thisLoop;
+        return frameTime;
+    }
 
     //
     const hm: any = {
@@ -208,6 +216,7 @@ export const grabForDrag = (
         shifting: [...shifting],
         modified: [...shifting],
         canceled: false,
+        duration: frameTime,
         element: new WeakRef(em),
         propertyName,
         origin: null
@@ -224,6 +233,7 @@ export const grabForDrag = (
             hm.origin   = [...(ev?.orient || [ev?.clientX || 0, ev?.clientY || 0] || [0, 0])];
             hm.shifting[0] += hm.movement[0], hm.shifting[1] += hm.movement[1];
             hm.modified[0]  = hm.shifting[0], hm.modified[1]  = hm.shifting[1];
+            hm.duration = computeDuration();
 
             //
             last = ev; changed = true;
@@ -286,7 +296,13 @@ export const grabForDrag = (
                     },
                 }));
 
-                //
+                // time dimension
+                setProperty(em,
+                    `--${hm.propertyName || "drag"}-d`,
+                    Math.min(hm.duration, 8)
+                );
+
+                // space dimension
                 setProperty(em,
                     `--${hm.propertyName || "drag"}-x`,
                     hm.modified[0] as unknown as string
