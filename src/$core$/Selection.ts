@@ -69,7 +69,7 @@ export const makeSelection = (boxElement, selector = "*")=>{
             //
             await new Promise((rs)=>requestAnimationFrame(rs));
         }
-    }, {timeout: 1000});
+    }, {timeout: 100});
 
     //
     selectionBox.classList.add("u2-selection-box");
