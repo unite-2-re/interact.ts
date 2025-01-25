@@ -226,7 +226,7 @@ export const grabForDrag = (
     const moveEvent = [(evc)=>{
         const ev = evc?.detail || evc;
         if (ex?.pointerId == ev?.pointerId) {
-            if (ev.target && !(ev.target.contains(em) || em.contains(ev.target) || ev.target == em)) { return; };
+            if (ev.target != em && !(ev.target.contains(em) || em.contains(ev.target))) { return; };
 
             //
             hm.movement = [...(ex?.movement || (hm.origin ? [ev.orient[0] - hm.origin[0], ev.orient[1] - hm.origin[1]] : hm.movement))];
@@ -244,7 +244,7 @@ export const grabForDrag = (
     const releaseEvent = [(evc)=>{
         const ev = evc?.detail || evc;
         if (ex?.pointerId == ev?.pointerId) {
-            if (ev.target && !(ev.target.contains(em) || em.contains(ev.target) || ev.target == em)) { return; };
+            if (ev.target != em && !(ev.target.contains(em) || em.contains(ev.target))) { return; };
 
             //
             hm.canceled = true;
