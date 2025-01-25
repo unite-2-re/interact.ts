@@ -299,7 +299,7 @@ export const grabForDrag = (
                 // time dimension
                 setProperty(em,
                     `--${hm.propertyName || "drag"}-d`,
-                    Math.min(hm.duration, 8)
+                    0//Math.min(hm.duration, 8)
                 );
 
                 // space dimension
