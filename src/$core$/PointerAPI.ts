@@ -229,10 +229,31 @@ export const grabForDrag = (
             if (ev.target != em && !(ev.target.contains(em) || em.contains(ev.target))) { return; };
 
             //
+            evc?.preventDefault?.();
+            evc?.stopPropagation?.();
+            evc?.stopImmediatePropagation?.();
+
+            //
+            ev?.event?.preventDefault?.();
+            ev?.event?.stopPropagation?.();
+            ev?.event?.stopImmediatePropagation?.();
+
+            //
             hm.movement = [...(ex?.movement || (hm.origin ? [ev.orient[0] - hm.origin[0], ev.orient[1] - hm.origin[1]] : hm.movement))];
             hm.origin   = [...(ev?.orient || [ev?.clientX || 0, ev?.clientY || 0] || [0, 0])];
             hm.shifting[0] += hm.movement[0], hm.shifting[1] += hm.movement[1];
             hm.modified[0]  = hm.shifting[0], hm.modified[1]  = hm.shifting[1];
+
+            //
+            em?.dispatchEvent?.(new CustomEvent("m-dragging", {
+                bubbles: true,
+                detail: {
+                    event: last,
+                    holding: hm,
+                },
+            }));
+
+            //
             hm.duration = computeDuration();
 
             //
@@ -286,15 +307,6 @@ export const grabForDrag = (
             //
             if (changed) {
                 changed = false;
-
-                //
-                em?.dispatchEvent?.(new CustomEvent("m-dragging", {
-                    bubbles: true,
-                    detail: {
-                        event: last,
-                        holding: hm,
-                    },
-                }));
 
                 // time dimension
                 setProperty(em,
