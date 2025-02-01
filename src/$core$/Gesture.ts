@@ -536,7 +536,7 @@ export class AxGesture {
                 action.timer = setTimeout(()=>{
                     fx?.(ev);
                     if (matchMedia("(pointer: coarse) and (hover: none)").matches) {
-                        blockClickTrigger();
+                        blockClickTrigger(evc);
                     }
                 }, options.holdTime ?? 300);
             }
@@ -894,13 +894,6 @@ export class AxGesture {
         actionState.cancelCallback          = null;
     }
 
-    // not correctly implemented
-    private blockClickTrigger(self: any, ev: PointerEvent) {
-        ev?.preventDefault?.();
-        ev?.stopImmediatePropagation?.();
-        ev?.stopPropagation?.();
-    }
-
     //
     private onPointerUp(self: any, ev: PointerEvent) {
         const {actionState} = self;
@@ -911,7 +904,7 @@ export class AxGesture {
 
         if (actionState.isReadyForLongPress && this.isInPlace(self)) {
             self.fx?.(ev);
-            this.blockClickTrigger(self, ev);
+            blockClickTrigger(ev);
         }
 
         actionState.cancelCallback();
