@@ -1,3 +1,6 @@
+// @ts-ignore
+import { agWrapEvent } from "/externals/core/agate.js";
+
 //
 const regProp = (options: any)=>{
     try {
@@ -144,14 +147,10 @@ const clickPrevention = (element, pointerId = 0)=>{
             //
             document.documentElement.removeEventListener("click", ...doc);
             document.documentElement.removeEventListener("contextmenu", ...doc);
-            document.documentElement.removeEventListener("ag-click", ...doc);
-            document.documentElement.removeEventListener("ag-contextmenu", ...doc);
 
             //
             element?.removeEventListener?.("click", ...emt);
-            element?.removeEventListener?.("ag-click", ...emt);
             element?.removeEventListener?.("contextmenu", ...emt);
-            element?.removeEventListener?.("ag-contextmenu", ...emt);
         }
     };
 
@@ -161,29 +160,21 @@ const clickPrevention = (element, pointerId = 0)=>{
 
     //
     {
-        document.documentElement.addEventListener("ag-click", ...doc);
-        document.documentElement.addEventListener("ag-contextmenu", ...doc);
         document.documentElement.addEventListener("click", ...doc);
         document.documentElement.addEventListener("contextmenu", ...doc);
     }
 
     {   //
         element?.addEventListener?.("click", ...emt);
-        element?.addEventListener?.("ag-click", ...emt);
         element?.addEventListener?.("contextmenu", ...emt);
-        element?.addEventListener?.("ag-contextmenu", ...emt);
     }
 
     //
     setTimeout(() => {
         element?.removeEventListener?.("click", ...emt);
-        element?.removeEventListener?.("ag-click", ...emt);
         element?.removeEventListener?.("contextmenu", ...emt);
-        element?.removeEventListener?.("ag-contextmenu", ...emt);
 
         //
-        document.documentElement.removeEventListener("ag-click", ...doc);
-        document.documentElement.removeEventListener("ag-contextmenu", ...doc);
         document.documentElement.removeEventListener("click", ...doc);
         document.documentElement.removeEventListener("contextmenu", ...doc);
     }, 100);
@@ -223,7 +214,7 @@ export const grabForDrag = (
     };
 
     //
-    const moveEvent = [(evc)=>{
+    const moveEvent = [agWrapEvent((evc)=>{
         const ev = evc?.detail || evc;
         if (ex?.pointerId == ev?.pointerId) {
             if (ev.target != em && !(ev.target.contains(em) || em.contains(ev.target))) { return; };
@@ -245,6 +236,7 @@ export const grabForDrag = (
             hm.modified[0]  = hm.shifting[0], hm.modified[1]  = hm.shifting[1];
 
             //
+            last = ev; changed = true;
             em?.dispatchEvent?.(new CustomEvent("m-dragging", {
                 bubbles: true,
                 detail: {
@@ -252,27 +244,22 @@ export const grabForDrag = (
                     holding: hm,
                 },
             }));
-
-            //
             hm.duration = computeDuration();
-
-            //
-            last = ev; changed = true;
         }
-    }, {capture: true}];
+    }), {capture: true}];
 
     //
-    const releaseEvent = [(evc)=>{
+    const releaseEvent = [agWrapEvent((evc)=>{
         const ev = evc?.detail || evc;
         if (ex?.pointerId == ev?.pointerId) {
             if (ev.target != em && !(ev.target.contains(em) || em.contains(ev.target))) { return; };
 
             //
             hm.canceled = true;
-            em?.removeEventListener?.("ag-pointermove", ...moveEvent);
-            em?.removeEventListener?.("ag-pointercancel", ...releaseEvent);
-            em?.removeEventListener?.("ag-pointerup", ...releaseEvent);
-            em?.removeEventListener?.("ag-click", ...releaseEvent);
+            em?.removeEventListener?.("pointermove", ...moveEvent);
+            em?.removeEventListener?.("pointercancel", ...releaseEvent);
+            em?.removeEventListener?.("pointerup", ...releaseEvent);
+            em?.removeEventListener?.("click", ...releaseEvent);
             em?.releaseCapturePointer?.(ev?.pointerId);
             ev?.release?.(em);
 
@@ -286,16 +273,16 @@ export const grabForDrag = (
                 },
             }));
         }
-    }, {capture: true}];
+    }), {capture: true}];
 
     //
     if (em?.dispatchEvent?.(new CustomEvent("m-dragstart", { bubbles: true, detail: { event: last, holding: hm }}))) {
         ex?.capture?.(em);
         em?.setPointerCapture?.(ex?.pointerId);
-        em?.addEventListener?.("ag-pointermove", ...moveEvent);
-        em?.addEventListener?.("ag-pointercancel", ...releaseEvent);
-        em?.addEventListener?.("ag-pointerup", ...releaseEvent);
-        em?.addEventListener?.("ag-click", ...releaseEvent);
+        em?.addEventListener?.("pointermove", ...moveEvent);
+        em?.addEventListener?.("pointercancel", ...releaseEvent);
+        em?.addEventListener?.("pointerup", ...releaseEvent);
+        em?.addEventListener?.("click", ...releaseEvent);
     } else {
         hm.canceled = true;
     }

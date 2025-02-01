@@ -1,5 +1,5 @@
 // @ts-ignore
-import { fixedClientZoom, orientOf, getBoundingOrientRect } from "/externals/core/agate.js";
+import { fixedClientZoom, orientOf, getBoundingOrientRect, agWrapEvent } from "/externals/core/agate.js";
 import { grabForDrag, setProperty } from "./PointerAPI";
 interface InteractStatus { pointerId?: number; };
 
@@ -179,7 +179,7 @@ export class AxGesture {
             const swipes_w = new WeakRef(swipes);
 
             //
-            ROOT.addEventListener("ag-pointerdown", (evc) => {
+            ROOT.addEventListener("pointerdown", agWrapEvent((evc) => {
                 const ev = evc?.detail ?? evc;
                 if (ev.target == options?.handler) {
                     swipes?.set(ev.pointerId, {
@@ -196,7 +196,7 @@ export class AxGesture {
                     // @ts-ignore
                     ev?.capture?.();
                 }
-            });
+            }));
 
             //
             const registerMove = (evc) => {
@@ -294,9 +294,9 @@ export class AxGesture {
             };
 
             //
-            ROOT.addEventListener("ag-pointermove", registerMove, {capture: true});
-            ROOT.addEventListener("ag-pointerup", (ev) => completeSwipe(ev.pointerId), {capture: true});
-            ROOT.addEventListener("ag-pointercancel", (ev) => completeSwipe(ev.pointerId), {capture: true});
+            ROOT.addEventListener("pointermove", registerMove, {capture: true});
+            ROOT.addEventListener("pointerup", (ev) => completeSwipe(ev.pointerId), {capture: true});
+            ROOT.addEventListener("pointercancel", (ev) => completeSwipe(ev.pointerId), {capture: true});
         }
     }
 
@@ -345,10 +345,9 @@ export class AxGesture {
         const weak = new WeakRef(this.#holder);
         const self_w = new WeakRef(this);
         const upd_w = new WeakRef(this.#updateSize);
-        const hasOB  = handler.closest("ui-orientbox");
 
         //
-        handler.addEventListener(hasOB ? "ag-pointerdown" : "pointerdown", (evc) => {
+        handler.addEventListener("pointerdown", agWrapEvent((evc) => {
             const self = self_w?.deref();
             const ev = evc?.detail || evc;
 
@@ -371,7 +370,7 @@ export class AxGesture {
             ev?.capture?.(self);
             // @ts-ignore
             //ev.target?.setPointerCapture?.(ev.pointerId);
-        });
+        }));
 
         //
         this.#holder.addEventListener(
@@ -425,10 +424,9 @@ export class AxGesture {
         const weak   = new WeakRef(this.#holder);
         const self_w = new WeakRef(this);
         const upd_w  = new WeakRef(this.#updateSize);
-        const hasOB  = handler.closest("ui-orientbox");
 
         //
-        handler.addEventListener(hasOB ? "ag-pointerdown" : "pointerdown", (evc) => {
+        handler.addEventListener("pointerdown", agWrapEvent((evc) => {
             const ev = evc?.detail || evc;
             status.pointerId = ev.pointerId;
 
@@ -473,10 +471,10 @@ export class AxGesture {
             ROOT.addEventListener("pointermove"  , ...shiftEv);
             ROOT.addEventListener("pointerup"    , unListenShift);
             ROOT.addEventListener("pointercancel", unListenShift);
-        });
+        }));
 
         //
-        const cancelShift = (evc)=>{
+        const cancelShift = agWrapEvent((evc)=>{
             const ev = evc?.detail || evc;
             //
             if ((ev.type?.includes?.("pointercancel") || ev.type?.includes?.("pointerup")) && status.pointerId == ev?.pointerId) {
@@ -488,11 +486,11 @@ export class AxGesture {
                 const holder = weak?.deref?.() as any;
                 holder?.style?.removeProperty?.("will-change");
             }
-        }
+        });
 
         //
-        ROOT.addEventListener(hasOB ? "ag-pointerup"     : "pointerup", cancelShift);
-        ROOT.addEventListener(hasOB ? "ag-pointercancel" : "pointercancel", cancelShift);
+        ROOT.addEventListener("pointerup"    , cancelShift);
+        ROOT.addEventListener("pointercancel", cancelShift);
 
         //
         this.#holder.addEventListener("m-dragend", (evc) => {
@@ -530,7 +528,7 @@ export class AxGesture {
     }) {
         //const handler = options.handler || this.#holder;
         const action: any = { pointerId: -1, timer: null };
-        const initiate = (evc)=>{
+        const initiate = agWrapEvent((evc)=>{
             const ev = evc?.detail || evc;
             if ((ev.target.matches(options.selector) || ev.target.closest(options.selector)) && action.pointerId < 0) {
                 action.pointerId = ev.pointerId;
@@ -541,10 +539,10 @@ export class AxGesture {
                     }
                 }, options.holdTime ?? 300);
             }
-        }
+        });
 
         //
-        const cancelEv = (evc)=>{
+        const cancelEv = agWrapEvent((evc)=>{
             const ev = evc?.detail || evc;
             if ((ev.target.matches(options.selector) || ev.target.closest(options.selector)) && action.pointerId == ev.pointerId) {
                 if (action.timer) { clearTimeout(action.timer); };
@@ -553,18 +551,19 @@ export class AxGesture {
                 action.timer   = null;
                 action.pointerId = -1;
             }
-        }
+        });
 
         //
-        ROOT.addEventListener("ag-pointerover"  , initiate);
-        ROOT.addEventListener("ag-pointerdown"  , initiate);
-        ROOT.addEventListener("ag-pointerout"   , cancelEv);
-        ROOT.addEventListener("ag-pointerup"    , cancelEv);
-        ROOT.addEventListener("ag-pointercancel", cancelEv);
+        ROOT.addEventListener("pointerover"  , initiate);
+        ROOT.addEventListener("pointerdown"  , initiate);
+        ROOT.addEventListener("pointerout"   , cancelEv);
+        ROOT.addEventListener("pointerup"    , cancelEv);
+        ROOT.addEventListener("pointercancel", cancelEv);
     }
 
 
     //
+    /* // FATAL DAMAGED IMPL
     longPress(
         options: any = {},
         fx: any = null
@@ -573,10 +572,10 @@ export class AxGesture {
         const weak   = new WeakRef(this.#holder);
 
         //
-        fx ||= (ev) => {
+        fx ||= agWrapEvent((ev) => {
             weak?.deref()?.dispatchEvent(new CustomEvent("long-press", {detail: ev?.detail || ev, bubbles: true}));
             //requestAnimationFrame(()=>navigator?.vibrate?.([10]))
-        }
+        });
 
         //
         const action: any = {
@@ -628,18 +627,18 @@ export class AxGesture {
         const forMove: [any, any] = [null, {capture: true}];
         const forCanc: [any, any] = [null, {capture: true}];
         const registerCoord: [any, any] = [
-            (evc) => {
+            agWrapEvent((evc) => {
                 const ev = evc?.detail || evc;
                 if (ev.pointerId == action.pointerId) {
                     action.lastCoord[0] = ev?.orient[0] || ev?.clientX;
                     action.lastCoord[1] = ev?.orient[1] || ev?.clientY;
                 }
-            },
+            }),
             {capture: true, passive: true},
         ];
 
         //
-        const triggerOrCancel: any = (evc) => {
+        const triggerOrCancel: any = agWrapEvent((evc) => {
             const ev = evc?.detail || evc;
             if (ev.pointerId == action.pointerId) {
                 action.lastCoord[0] = ev?.orient[0] || ev?.clientX;
@@ -656,10 +655,10 @@ export class AxGesture {
                     action.cancelRv?.();
                 }
             }
-        };
+        });
 
         //
-        const cancelWhenMove: any = (evc) => {
+        const cancelWhenMove: any = agWrapEvent((evc) => {
             const ev = evc?.detail || evc;
             if (ev.pointerId == action.pointerId) {
                 action.lastCoord[0] = ev?.orient[0] || ev?.clientX;
@@ -674,7 +673,7 @@ export class AxGesture {
                     action.cancelRv?.();
                 }
             }
-        };
+        });
 
         //
         forCanc[0] = triggerOrCancel;
@@ -682,8 +681,8 @@ export class AxGesture {
 
         //
         ROOT.addEventListener(
-            "ag-pointerdown",
-            (evc) => {
+            "pointerdown",
+            agWrapEvent((evc) => {
                 const ev = evc?.detail ?? evc;
                 if (
                     (weak?.deref()?.contains(ev?.target as HTMLElement) && (options.handler ? (ev?.target as HTMLElement).matches(options.handler) : false) || (ev?.target == weak?.deref())) &&
@@ -703,9 +702,9 @@ export class AxGesture {
                     action.cancelPromise = cancelPromiseWithResolve.promise;
                     action.cancelRv = () => {
                         //
-                        ROOT.removeEventListener("ag-pointerup", ...forCanc);
-                        ROOT.removeEventListener("ag-pointercancel", ...forCanc);
-                        ROOT.removeEventListener("ag-pointermove", ...forMove);
+                        ROOT.removeEventListener("pointerup", ...forCanc);
+                        ROOT.removeEventListener("pointercancel", ...forCanc);
+                        ROOT.removeEventListener("pointermove", ...forMove);
 
                         //
                         clearTimeout(action.timer);
@@ -751,19 +750,19 @@ export class AxGesture {
                     }
 
                     //
-                    ROOT.addEventListener("ag-pointerup", ...forCanc);
-                    ROOT.addEventListener("ag-pointercancel", ...forCanc);
-                    ROOT.addEventListener("ag-pointermove", ...forMove);
+                    ROOT.addEventListener("pointerup", ...forCanc);
+                    ROOT.addEventListener("pointercancel", ...forCanc);
+                    ROOT.addEventListener("pointermove", ...forMove);
                 }
-            },
-            {passive: false, capture: false}
-        );
+            }),
+            {passive: false, capture: false});
 
         //
-        ROOT.addEventListener("ag-pointerup", ...registerCoord);
-        ROOT.addEventListener("ag-pointercancel", ...registerCoord);
-        ROOT.addEventListener("ag-pointermove", ...registerCoord);
+        ROOT.addEventListener("pointerup", ...registerCoord);
+        ROOT.addEventListener("pointercancel", ...registerCoord);
+        ROOT.addEventListener("pointermove", ...registerCoord);
     }
+    */
 }
 
 //
