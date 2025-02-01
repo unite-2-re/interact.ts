@@ -917,13 +917,19 @@ export class AxGesture {
         actionState.cancelCallback();
     }
 
+    private hasParent(current, parent) {
+        while (current) {
+            if (current === parent) return true;
+            current = current.parentElement;
+        }
+    }
+
     private isValidTarget(self: any, target: HTMLElement, weakRef: WeakRef<HTMLElement>): boolean|null|undefined {
         const weakElement = weakRef?.deref?.();//new WeakRef(this.#holder).deref();
 
         // Check for valid target based on options and hierarchy
         return (
-            weakElement &&
-            (weakElement.contains(target) || target === weakElement) &&
+            weakElement && (this.hasParent(target, weakElement) || target === weakElement) &&
             (!self.options.handler || target.matches(self.options.handler))
         );
     }

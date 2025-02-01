@@ -214,10 +214,18 @@ export const grabForDrag = (
     };
 
     //
+    const hasParent = (current, parent)=>{
+        while (current) {
+            if (current === parent) return true;
+            current = current.parentElement;
+        }
+    }
+
+    //
     const moveEvent = [agWrapEvent((evc)=>{
         const ev = evc?.detail || evc;
         if (ex?.pointerId == ev?.pointerId) {
-            if (ev.target != em && !(ev.target.contains(em) || em.contains(ev.target))) { return; };
+            if (ev.target != em && !hasParent(ev.target, em)) { return; };
 
             //
             evc?.preventDefault?.();
@@ -234,13 +242,13 @@ export const grabForDrag = (
             hm.origin   = [...(ev?.orient || [ev?.clientX || 0, ev?.clientY || 0] || [0, 0])];
             hm.shifting[0] += hm.movement[0], hm.shifting[1] += hm.movement[1];
             hm.modified[0]  = hm.shifting[0], hm.modified[1]  = hm.shifting[1];
+            changed = true;
 
             //
-            last = ev; changed = true;
             em?.dispatchEvent?.(new CustomEvent("m-dragging", {
                 bubbles: true,
                 detail: {
-                    event: last,
+                    event: (last = ev),
                     holding: hm,
                 },
             }));
@@ -252,7 +260,7 @@ export const grabForDrag = (
     const releaseEvent = [agWrapEvent((evc)=>{
         const ev = evc?.detail || evc;
         if (ex?.pointerId == ev?.pointerId) {
-            if (ev.target != em && !(ev.target.contains(em) || em.contains(ev.target))) { return; };
+            if (ev.target != em && !hasParent(ev.target, em)) { return; };
 
             //
             hm.canceled = true;
@@ -264,11 +272,14 @@ export const grabForDrag = (
             ev?.release?.(em);
 
             //
-            changed = false; last = ev; clickPrevention(em, ev?.pointerId);
+            changed = false;
+
+            //
+            clickPrevention(em, ev?.pointerId);
             em?.dispatchEvent?.(new CustomEvent("m-dragend", {
                 bubbles: true,
                 detail: {
-                    event: last,
+                    event: (last = ev),
                     holding: hm,
                 },
             }));
