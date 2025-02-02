@@ -223,9 +223,8 @@ export const grabForDrag = (
 
     //
     const moveEvent = [agWrapEvent((evc)=>{
-        const ev = evc?.detail || evc;
-        if (ex?.pointerId == ev?.pointerId) {
-            if (ev.target != em && !hasParent(ev.target, em)) { return; };
+        if (ex?.pointerId == evc?.pointerId) {
+            if (evc.target != em && !hasParent(evc.target, em)) { return; };
 
             //
             evc?.preventDefault?.();
@@ -233,13 +232,8 @@ export const grabForDrag = (
             evc?.stopImmediatePropagation?.();
 
             //
-            ev?.event?.preventDefault?.();
-            ev?.event?.stopPropagation?.();
-            ev?.event?.stopImmediatePropagation?.();
-
-            //
-            hm.movement = [...(ex?.movement || (hm.origin ? [ev.orient[0] - hm.origin[0], ev.orient[1] - hm.origin[1]] : hm.movement))];
-            hm.origin   = [...(ev?.orient || [ev?.clientX || 0, ev?.clientY || 0] || [0, 0])];
+            hm.movement = [...(ex?.movement || (hm.origin ? [evc.orient[0] - hm.origin[0], evc.orient[1] - hm.origin[1]] : hm.movement))];
+            hm.origin   = [...(evc?.orient || [evc?.clientX || 0, evc?.clientY || 0] || [0, 0])];
             hm.shifting[0] += hm.movement[0], hm.shifting[1] += hm.movement[1];
             hm.modified[0]  = hm.shifting[0], hm.modified[1]  = hm.shifting[1];
             changed = true;
@@ -248,7 +242,7 @@ export const grabForDrag = (
             em?.dispatchEvent?.(new CustomEvent("m-dragging", {
                 bubbles: true,
                 detail: {
-                    event: (last = ev),
+                    event: (last = evc),
                     holding: hm,
                 },
             }));
@@ -258,28 +252,28 @@ export const grabForDrag = (
 
     //
     const releaseEvent = [agWrapEvent((evc)=>{
-        const ev = evc?.detail || evc;
-        if (ex?.pointerId == ev?.pointerId) {
-            if (ev.target != em && !hasParent(ev.target, em)) { return; };
+        if (ex?.pointerId == evc?.pointerId) {
+            changed = false;
 
             //
+            if (hm.canceled) return;
             hm.canceled = true;
             em?.removeEventListener?.("pointermove", ...moveEvent);
             em?.removeEventListener?.("pointercancel", ...releaseEvent);
             em?.removeEventListener?.("pointerup", ...releaseEvent);
             em?.removeEventListener?.("click", ...releaseEvent);
-            em?.releaseCapturePointer?.(ev?.pointerId);
-            ev?.release?.(em);
+            em?.releaseCapturePointer?.(evc?.pointerId);
+            evc?.release?.(em);
 
             //
-            changed = false;
+            if (evc.target != em && !hasParent(evc.target, em)) { return; };
 
             //
-            clickPrevention(em, ev?.pointerId);
+            clickPrevention(em, evc?.pointerId);
             em?.dispatchEvent?.(new CustomEvent("m-dragend", {
                 bubbles: true,
                 detail: {
-                    event: (last = ev),
+                    event: (last = evc),
                     holding: hm,
                 },
             }));
