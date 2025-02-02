@@ -185,8 +185,8 @@ export class AxGesture {
                 if (ev.target == options?.handler) {
                     swipes?.set(ev.pointerId, {
                         target: ev.target,
-                        start: [...(ev.orient || [ev?.clientX, ev?.clientY])],
-                        current: [...(ev.orient || [ev?.clientX, ev?.clientY])],
+                        start: [...(ev.client || [ev?.clientX, ev?.clientY])],
+                        current: [...(ev.client || [ev?.clientX, ev?.clientY])],
                         pointerId: ev.pointerId,
                         startTime: performance.now(),
                         time: performance.now(),
@@ -207,7 +207,7 @@ export class AxGesture {
                     const swipe = swipes?.get?.(ev.pointerId);
                     Object.assign(swipe || {}, {
                         //speed: (swipe.speed == 0 ? speed : (speed * 0.8 + swipe.speed * 0.2)),
-                        current: [...(ev.orient || [ev?.clientX, ev?.clientY])],
+                        current: [...(ev.client || [ev?.clientX, ev?.clientY])],
                         pointerId: ev.pointerId,
                         time: performance.now(),
                     });
@@ -317,23 +317,6 @@ export class AxGesture {
     }
 
     //
-    limitDrag(real, virtual, holder, container, shift: [number, number] = [0, 0]) {
-        const widthDiff  = cbw(container) - bbw(holder);
-        const heightDiff = cbh(container) - bbh(holder);
-
-        // if centered
-        //real[0] = clamp(-widthDiff * 0.5, virtual[0], widthDiff * 0.5);
-        //real[1] = clamp(-heightDiff * 0.5, virtual[1], heightDiff * 0.5);
-
-        // if origin in top-left
-        real[0] = clamp(0, virtual[0] + shift[0], widthDiff)  - shift[0];
-        real[1] = clamp(0, virtual[1] + shift[1], heightDiff) - shift[1];
-
-        //
-        return real;
-    }
-
-    //
     get #parent() {
         // @ts-ignore
         return this.#holder.offsetParent ?? this.#holder?.host ?? ROOT;
@@ -414,7 +397,7 @@ export class AxGesture {
         );
     }
 
-    // OBSOLETE! Due of critical issues...
+    //
     draggable(options) {
         const handler = options.handler ?? this.#holder;
         const status: InteractStatus = {
@@ -561,209 +544,6 @@ export class AxGesture {
         ROOT.addEventListener("pointerup"    , cancelEv);
         ROOT.addEventListener("pointercancel", cancelEv);
     }
-
-
-    //
-    /* // FATAL DAMAGED IMPL
-    longPress(
-        options: any = {},
-        fx: any = null
-    ) {
-        //
-        const weak   = new WeakRef(this.#holder);
-
-        //
-        fx ||= agWrapEvent((ev) => {
-            weak?.deref()?.dispatchEvent(new CustomEvent("long-press", {detail: ev?.detail || ev, bubbles: true}));
-            //requestAnimationFrame(()=>navigator?.vibrate?.([10]))
-        });
-
-        //
-        const action: any = {
-            timer: null,
-            cancelPromise: null,
-            imTimer: null,
-            pointerId: -1,
-            pageCoord: [0, 0],
-            lastCoord: [0, 0],
-            ready: false,
-            cancelRv: () => {}
-        };
-
-        //
-        const prepare = (resolve, action, ev) => {
-            return async () => {
-                if (action.pointerId == ev.pointerId) resolve?.();
-            };
-        };
-
-        //
-        const inPlace = () => {
-            return (
-                Math.hypot(
-                    ...action.lastCoord.map(
-                        (n, i) => (action?.pageCoord?.[i] || 0) - n
-                    )
-                ) <= (options?.maxOffsetRadius ?? 10)
-            );
-        };
-
-        //
-        const immediate = (resolve, action, ev) => {
-            return async () => {
-                if (action.pointerId == ev.pointerId) {
-                    if (inPlace()) {
-                        resolve?.();
-
-                        //
-                        fx?.(ev);
-                        blockClickTrigger(ev);
-                    }
-                    action.cancelRv?.();
-                }
-            };
-        };
-
-        //
-        const forMove: [any, any] = [null, {capture: true}];
-        const forCanc: [any, any] = [null, {capture: true}];
-        const registerCoord: [any, any] = [
-            agWrapEvent((evc) => {
-                const ev = evc?.detail || evc;
-                if (ev.pointerId == action.pointerId) {
-                    action.lastCoord[0] = ev?.orient[0] || ev?.clientX;
-                    action.lastCoord[1] = ev?.orient[1] || ev?.clientY;
-                }
-            }),
-            {capture: true, passive: true},
-        ];
-
-        //
-        const triggerOrCancel: any = agWrapEvent((evc) => {
-            const ev = evc?.detail || evc;
-            if (ev.pointerId == action.pointerId) {
-                action.lastCoord[0] = ev?.orient[0] || ev?.clientX;
-                action.lastCoord[1] = ev?.orient[1] || ev?.clientY;
-
-                //
-                evc?.preventDefault();
-                evc?.stopPropagation();
-
-                // JS math logic megalovania...
-                if (action.ready) {
-                    immediate(null, action, ev);
-                } else {
-                    action.cancelRv?.();
-                }
-            }
-        });
-
-        //
-        const cancelWhenMove: any = agWrapEvent((evc) => {
-            const ev = evc?.detail || evc;
-            if (ev.pointerId == action.pointerId) {
-                action.lastCoord[0] = ev?.orient[0] || ev?.clientX;
-                action.lastCoord[1] = ev?.orient[1] || ev?.clientY;
-
-                //
-                evc?.preventDefault();
-                evc?.stopPropagation();
-
-                // JS math logic megalovania...
-                if (!inPlace()) {
-                    action.cancelRv?.();
-                }
-            }
-        });
-
-        //
-        forCanc[0] = triggerOrCancel;
-        forMove[0] = cancelWhenMove;
-
-        //
-        ROOT.addEventListener(
-            "pointerdown",
-            agWrapEvent((evc) => {
-                const ev = evc?.detail ?? evc;
-                if (
-                    (weak?.deref()?.contains(ev?.target as HTMLElement) && (options.handler ? (ev?.target as HTMLElement).matches(options.handler) : false) || (ev?.target == weak?.deref())) &&
-                    action.pointerId < 0 &&
-                    (options.anyPointer || ev?.pointerType == "touch")
-                ) {
-                    evc?.preventDefault?.();
-                    evc?.stopPropagation?.();
-
-                    //
-                    action.pageCoord = [...(ev?.orient || [ev?.clientX, ev?.clientY])];
-                    action.lastCoord = [...(ev?.orient || [ev?.clientX, ev?.clientY])];
-                    action.pointerId = ev.pointerId;
-
-                    //
-                    const cancelPromiseWithResolve = Promise.withResolvers();
-                    action.cancelPromise = cancelPromiseWithResolve.promise;
-                    action.cancelRv = () => {
-                        //
-                        ROOT.removeEventListener("pointerup", ...forCanc);
-                        ROOT.removeEventListener("pointercancel", ...forCanc);
-                        ROOT.removeEventListener("pointermove", ...forMove);
-
-                        //
-                        clearTimeout(action.timer);
-                        clearTimeout(action.imTimer);
-                        action.ready = false;
-                        action.timer = null;
-                        action.imTimer = null;
-                        action.cancelRv = null;
-                        action.cancelPromise = null;
-                        action.pointerId = -1;
-
-                        //
-                        cancelPromiseWithResolve.resolve(true);
-                    };
-
-                    //
-                    if (ev.pointerType == "mouse" && options.mouseImmediate) {
-                        fx?.(ev);
-                        action?.cancelRv?.();
-                    } else {
-                        //
-                        Promise.any([
-                            tpm(
-                                (resolve, _) =>
-                                (action.timer = setTimeout(
-                                    prepare(resolve, action, ev),
-                                    options?.minHoldTime ?? 300
-                                )),
-                                1000 * 5
-                            ).then(() => (action.ready = true)),
-                            tpm(
-                                (resolve, _) =>
-                                (action.imTimer = setTimeout(
-                                    immediate(resolve, action, ev),
-                                    options?.maxHoldTime ?? 600
-                                )),
-                                1000
-                            ),
-                            action.cancelPromise,
-                        ])
-                            .catch(console.warn.bind(console))
-                            .then(action.cancelRv);
-                    }
-
-                    //
-                    ROOT.addEventListener("pointerup", ...forCanc);
-                    ROOT.addEventListener("pointercancel", ...forCanc);
-                    ROOT.addEventListener("pointermove", ...forMove);
-                }
-            }),
-            {passive: false, capture: false});
-
-        //
-        ROOT.addEventListener("pointerup", ...registerCoord);
-        ROOT.addEventListener("pointercancel", ...registerCoord);
-        ROOT.addEventListener("pointermove", ...registerCoord);
-    }
-    */
 
     //
     private holding: any = {

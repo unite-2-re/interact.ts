@@ -210,7 +210,7 @@ export const grabForDrag = (
         duration: frameTime,
         element: new WeakRef(em),
         propertyName,
-        origin: null
+        client: null///[0, 0]
     };
 
     //
@@ -232,8 +232,8 @@ export const grabForDrag = (
             evc?.stopImmediatePropagation?.();
 
             //
-            hm.movement = [...(ex?.movement || (hm.origin ? [evc.orient[0] - hm.origin[0], evc.orient[1] - hm.origin[1]] : hm.movement))];
-            hm.origin   = [...(evc?.orient || [evc?.clientX || 0, evc?.clientY || 0] || [0, 0])];
+            hm.movement = [...(ex?.movement || (hm.client ? [evc.client[0] - hm.client[0], evc.client[1] - hm.client[1]] : hm.movement))];
+            hm.client   = [...(evc?.client || [evc?.clientX || 0, evc?.clientY || 0] || [0, 0])];
             hm.shifting[0] += hm.movement[0], hm.shifting[1] += hm.movement[1];
             hm.modified[0]  = hm.shifting[0], hm.modified[1]  = hm.shifting[1];
             changed = true;
