@@ -482,8 +482,8 @@ export class AxGesture {
             const box    = getBoundingOrientRect(holder) || holder?.getBoundingClientRect?.();
 
             //
-            setProperty(holder, "--shift-x", box?.left || 0);
-            setProperty(holder, "--shift-y", box?.top  || 0);
+            setProperty(holder, "--shift-x", (box?.left || 0) - (this.#parent[contentBoxWidth ] - this.#holder[borderBoxWidth ]) * 0.5);
+            setProperty(holder, "--shift-y", (box?.top  || 0) - (this.#parent[contentBoxHeight] - this.#holder[borderBoxHeight]) * 0.5);
 
             //
             setProperty(holder, "--drag-x", 0);
