@@ -359,35 +359,10 @@ export class AxGesture {
 
         //
         this.#holder.addEventListener(
-            "m-dragging",
-            (evc) => {
-                const holder = weak?.deref?.() as any;
-                const dt     = evc?.detail ?? evc;
-
-                //
-                if (
-                    holder &&
-                    dt.event.pointerId == status.pointerId &&
-                    dt.holding.propertyName == "resize" &&
-                    dt.holding.element.deref() == holder
-                ) {
-                    const self   = self_w?.deref?.();
-                    const parent = holder?.offsetParent ?? holder?.host ?? ROOT;
-                    /*self?.limitResize?.(
-                        dt.holding.modified,
-                        dt.holding.shifting,
-                        holder,
-                        parent
-                    );*/
-                }
-            },
-            {capture: true, passive: false}
-        );
-
-        //
-        this.#holder.addEventListener(
             "m-dragend",
             (evc) => {
+                const self   = self_w?.deref?.();
+                const holder = weak?.deref?.() as any;
                 const dt = evc?.detail ?? evc; evc?.target?.style.removeProperty("will-change");
                 if (dt.holding.propertyName == "resize") {
                     status.pointerId = -1;
@@ -483,8 +458,8 @@ export class AxGesture {
             const box    = getBoundingOrientRect(holder) || holder?.getBoundingClientRect?.();
 
             //
-            setProperty(holder, "--shift-x", (box?.left || 0) - (this.propGet("--resize-x") || 0) * 0.5 - (this.#parent[contentBoxWidth ] - this.#holder[borderBoxWidth ]) * 0.5);
-            setProperty(holder, "--shift-y", (box?.top  || 0) - (this.propGet("--resize-y") || 0) * 0.5 - (this.#parent[contentBoxHeight] - this.#holder[borderBoxHeight]) * 0.5);
+            setProperty(holder, "--shift-x", (box?.left || 0) - Math.max(this.propGet("--resize-x") || 0, 0) * 0.5 - (this.#parent[contentBoxWidth ] - this.#holder[borderBoxWidth ]) * 0.5);
+            setProperty(holder, "--shift-y", (box?.top  || 0) - Math.max(this.propGet("--resize-y") || 0, 0) * 0.5 - (this.#parent[contentBoxHeight] - this.#holder[borderBoxHeight]) * 0.5);
 
             //
             setProperty(holder, "--drag-x", 0);
