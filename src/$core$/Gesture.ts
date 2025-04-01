@@ -1,6 +1,9 @@
+import { grabForDrag, setProperty, importCdn } from "./PointerAPI";
+
 // @ts-ignore
-import { fixedClientZoom, orientOf, getBoundingOrientRect, agWrapEvent } from "/externals/core/agate.js";
-import { grabForDrag, setProperty } from "./PointerAPI";
+const { fixedClientZoom, orientOf, getBoundingOrientRect, agWrapEvent } = await Promise.try(importCdn, ["/externals/core/agate.js"]);
+
+//
 interface InteractStatus { pointerId?: number; };
 
 //

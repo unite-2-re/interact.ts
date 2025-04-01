@@ -1,5 +1,6 @@
-// @ts-ignore
-import { agWrapEvent } from "/externals/core/agate.js";
+// @ts-ignore /* @vite-ignore */
+import {importCdn} from "/externals/modules/cdnImport.mjs";
+export {importCdn};
 
 //
 const regProp = (options: any)=>{
@@ -182,7 +183,7 @@ const clickPrevention = (element, pointerId = 0)=>{
 
 //
 export const pointerMap = new Map([]);
-export const grabForDrag = (
+export const grabForDrag = async (
     em,
     ex: any = {pointerId: 0},
     {
@@ -190,6 +191,10 @@ export const grabForDrag = (
         propertyName = "drag", // use dragging events for use limits
     } = {}
 ) => {
+    // @ts-ignore
+    const { agWrapEvent } = await Promise.try(importCdn, ["/externals/core/agate.js"]);
+
+    //
     let last: any = ex?.detail || ex;
     let changed: boolean = false;
     let frameTime = 0.01, lastLoop = performance.now(), thisLoop;
