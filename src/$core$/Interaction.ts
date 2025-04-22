@@ -1,31 +1,56 @@
-
 //
-const getSpan = (el, ax)=>{
-    const prop = el.style.getPropertyValue(["--ox-c-span", "--ox-r-span"][ax]);
-    const factor = ((parseFloat(prop || "1") || 1) - 1);
-    return Math.min(Math.max(factor-1, 0), 1);
-}
+import AxGesture from "./Gesture";
+import { grabForDrag, setProperty } from "./PointerAPI";
 
-//
-import { setProperty } from "./PointerAPI";
 // @ts-ignore /* @vite-ignore */
 import {importCdn} from "/externals/modules/cdnImport.mjs";
 export {importCdn};
 
 //
 const ROOT = document.documentElement;
-export const bindInteraction = async (newItem: any, args: any)=>{
-    // @ts-ignore
-    const { redirectCell, convertOrientPxToCX, animationSequence } = await Promise.try(importCdn, ["/externals/core/grid.js"]);
 
+//
+export const reflectCell = async (newItem: any, pArgs: any)=>{
     // @ts-ignore
-    const { AxGesture, grabForDrag } = await Promise.try(importCdn, ["/externals/core/interact.js"]);
-
+    const { getBoundingOrientRect, agWrapEvent, orientOf, redirectCell, convertOrientPxToCX, animationSequence } = await Promise.try(importCdn, ["/externals/core/agate.js"]);
     // @ts-ignore
-    const { getBoundingOrientRect, agWrapEvent, orientOf } = await Promise.try(importCdn, ["/externals/core/agate.js"]);
+    const {subscribe, makeObjectAssignable, makeReactive } = await Promise.try(importCdn, ["/externals/lib/object.js"]);
 
     //
-    const {item, list, items, layout, size} = args;
+    const layout = [pArgs?.layout?.columns || pArgs?.layout?.[0] || 4, pArgs?.layout?.rows || pArgs?.layout?.[1] || 8];
+    const {item, list, items} = pArgs;
+
+    //
+    await new Promise((r)=>requestAnimationFrame(r));
+    subscribe?.(item, (state, property)=>{
+        const gridSystem = newItem?.parentElement;
+        layout[0] = parseInt(gridSystem.style.getPropertyValue("--layout-c")) || layout[0];
+        layout[1] = parseInt(gridSystem.style.getPropertyValue("--layout-r")) || layout[1];
+
+        //
+        const pbox = getBoundingOrientRect(gridSystem) || gridSystem?.getBoundingClientRect?.();
+        const args = {item, list, items, layout, size: [gridSystem?.clientWidth, gridSystem?.clientHeight]};
+        if (item && !item?.cell) { item.cell = makeObjectAssignable(makeReactive([0, 0])); };
+        if (item && args) { const nc = redirectCell(item?.cell, args); if (nc[0] != item?.cell?.[0] || nc[1] != item?.cell?.[1]) { item.cell = nc; } };
+        if (property == "cell") { subscribe(state, (v,p)=>setProperty(newItem, ["--cell-x","--cell-y"][parseInt(p)], v)); }
+    });
+}
+
+//
+export const bindInteraction = async (newItem: any, pArgs: any)=>{
+
+    // @ts-ignore
+    const { getBoundingOrientRect, agWrapEvent, orientOf, redirectCell, convertOrientPxToCX, animationSequence } = await Promise.try(importCdn, ["/externals/core/agate.js"]);
+
+    //
+    const {item, list, items} = pArgs;
+    const layout = [pArgs?.layout?.columns || pArgs?.layout?.[0] || 4, pArgs?.layout?.rows || pArgs?.layout?.[1] || 8];
+
+    //
+    await new Promise((r)=>requestAnimationFrame(r));
+    reflectCell(newItem, pArgs);
+
+    //
     const gesture = new AxGesture(newItem);
     gesture?.longPress?.({
         handler: "*",
@@ -99,10 +124,11 @@ export const bindInteraction = async (newItem: any, args: any)=>{
         const rel : [number, number] = [(cbox.left + cbox.right)/2 - pbox.left, (cbox.top + cbox.bottom)/2 - pbox.top];
 
         //
-        layout[0] = gridSystem.style.getPropertyValue("--layout-c") || layout[0];
-        layout[1] = gridSystem.style.getPropertyValue("--layout-r") || layout[1];
+        layout[0] = parseInt(gridSystem.style.getPropertyValue("--layout-c")) || layout[0];
+        layout[1] = parseInt(gridSystem.style.getPropertyValue("--layout-r")) || layout[1];
 
         //
+        const args = {item, list, items, layout, size: [gridSystem?.clientWidth, gridSystem?.clientHeight]};
         const CXa  = convertOrientPxToCX(rel, args, orientOf(gridSystem));
         const prev = [item.cell[0], item.cell[1]];
         const cell = redirectCell([Math.floor(CXa[0]), Math.floor(CXa[1])], args);
@@ -136,11 +162,11 @@ export const bindInteraction = async (newItem: any, args: any)=>{
         const rel : [number, number] = [(cbox.left + cbox.right)/2 - pbox.left, (cbox.top + cbox.bottom)/2 - pbox.top];
 
         //
-        layout[0] = gridSystem.style.getPropertyValue("--layout-c") || layout[0];
-        layout[1] = gridSystem.style.getPropertyValue("--layout-r") || layout[1];
+        layout[0] = parseInt(gridSystem.style.getPropertyValue("--layout-c")) || layout[0];
+        layout[1] = parseInt(gridSystem.style.getPropertyValue("--layout-r")) || layout[1];
 
         //
-        const args = {item, list, items, layout, size};
+        const args = {item, list, items, layout, size: [gridSystem?.clientWidth, gridSystem?.clientHeight]};
         const CXa  = convertOrientPxToCX(rel, args, orientOf(gridSystem));
 
         //
@@ -211,4 +237,11 @@ export const bindInteraction = async (newItem: any, args: any)=>{
             delete newItem.dataset.dragging;
         }
     });
+}
+
+//
+export const getSpan = (el, ax)=>{
+    const prop = el.style.getPropertyValue(["--ox-c-span", "--ox-r-span"][ax]);
+    const factor = ((parseFloat(prop || "1") || 1) - 1);
+    return Math.min(Math.max(factor-1, 0), 1);
 }
