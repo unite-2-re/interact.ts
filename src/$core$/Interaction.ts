@@ -10,9 +10,9 @@ export {importCdn};
 const ROOT = document.documentElement;
 
 //
-export const reflectCell = async (newItem: any, pArgs: any)=>{
+export const reflectCell = async (newItem: any, pArgs: any, withAnimate = false)=>{
     // @ts-ignore
-    const { getBoundingOrientRect, agWrapEvent, orientOf, redirectCell, convertOrientPxToCX, animationSequence } = await Promise.try(importCdn, ["/externals/core/agate.js"]);
+    const { getBoundingOrientRect, agWrapEvent, orientOf, redirectCell, convertOrientPxToCX } = await Promise.try(importCdn, ["/externals/core/agate.js"]);
     // @ts-ignore
     const {subscribe, makeObjectAssignable, makeReactive } = await Promise.try(importCdn, ["/externals/lib/object.js"]);
 
@@ -32,15 +32,81 @@ export const reflectCell = async (newItem: any, pArgs: any)=>{
         const args = {item, list, items, layout, size: [gridSystem?.clientWidth, gridSystem?.clientHeight]};
         if (item && !item?.cell) { item.cell = makeObjectAssignable(makeReactive([0, 0])); };
         if (item && args) { const nc = redirectCell(item?.cell, args); if (nc[0] != item?.cell?.[0] || nc[1] != item?.cell?.[1]) { item.cell = nc; } };
-        if (property == "cell") { subscribe(state, (v,p)=>setProperty(newItem, ["--cell-x","--cell-y"][parseInt(p)], v)); }
+        if (property == "cell") { subscribe(state, (v,p)=>{
+            doAnimate(newItem, redirectCell(item?.cell, args), withAnimate);
+        }); }
     });
+}
+
+//
+export const animationSequence = (DragCoord = [0, 0], CellStart: any = null, CellEnd: any = null) => {
+    return [{
+        "--drag-x": DragCoord?.[0] || 0,
+        "--drag-y": DragCoord?.[1] || 0,
+        "--grid-c": CellStart?.[0] != null ? (CellStart?.[0]+1) : "var(--fp-cell-x)",
+        "--grid-r": CellStart?.[1] != null ? (CellStart?.[1]+1) : "var(--fp-cell-y)",
+    }, // starting...
+    {
+        "--drag-x": 0,
+        "--drag-y": 0,
+        "--grid-c": CellEnd?.[0] != null ? (CellEnd?.[0]+1) : "var(--fc-cell-x)",
+        "--grid-r": CellEnd?.[1] != null ? (CellEnd?.[1]+1) : "var(--fc-cell-y)",
+    }];
+};
+
+//
+export const doAnimate = async (newItem, cell, animate = false)=>{
+    setProperty(newItem, "--cell-x", cell[0]);
+    setProperty(newItem, "--cell-y", cell[1]);
+
+    //
+    const animation = animate && !matchMedia("(prefers-reduced-motion: reduce)")?.matches ? newItem.animate(animationSequence([
+        parseInt(newItem.style.getPropertyValue("--drag-x")),
+        parseInt(newItem.style.getPropertyValue("--drag-y"))
+    ], [
+        parseInt(newItem.style.getPropertyValue("--p-cell-x")), 
+        parseInt(newItem.style.getPropertyValue("--p-cell-y"))
+    ], cell), {
+        fill: "both",
+        duration: 150,
+        easing: "linear"
+    }) : null;
+
+    //
+    let shifted = false;
+    const onShift: [any, any] = [(ev)=>{
+        if (!shifted) {
+            shifted = true;
+            //animation?.commitStyles?.();
+            animation?.cancel?.();
+        }
+
+        //
+        newItem?.removeEventListener?.("m-dragstart", ...onShift);
+    }, {once: true}];
+
+    // not fact, but for animation
+    newItem?.addEventListener?.("m-dragstart", ...onShift);
+    //await new Promise((r)=>requestAnimationFrame(r));
+    await animation?.finished?.catch?.(console.warn.bind(console));
+    delete newItem.dataset.dragging;
+
+    //
+    if (!shifted) {
+        // commit dragging result
+        onShift?.[0]?.();
+        setProperty(newItem, "--p-cell-x", cell[0]);
+        setProperty(newItem, "--p-cell-y", cell[1]);            
+        setProperty(newItem, "--drag-x", 0);
+        setProperty(newItem, "--drag-y", 0);
+    }
 }
 
 //
 export const bindInteraction = async (newItem: any, pArgs: any)=>{
 
     // @ts-ignore
-    const { getBoundingOrientRect, agWrapEvent, orientOf, redirectCell, convertOrientPxToCX, animationSequence } = await Promise.try(importCdn, ["/externals/core/agate.js"]);
+    const { getBoundingOrientRect, agWrapEvent, orientOf, redirectCell, convertOrientPxToCX } = await Promise.try(importCdn, ["/externals/core/agate.js"]);
 
     //
     const {item, list, items} = pArgs;
@@ -48,7 +114,7 @@ export const bindInteraction = async (newItem: any, pArgs: any)=>{
 
     //
     await new Promise((r)=>requestAnimationFrame(r));
-    reflectCell(newItem, pArgs);
+    reflectCell(newItem, pArgs, true);
 
     //
     const gesture = new AxGesture(newItem);
@@ -173,69 +239,11 @@ export const bindInteraction = async (newItem: any, pArgs: any)=>{
         const clamped = [Math.floor(CXa[0]), Math.floor(CXa[1])];
         clamped[0] = Math.max(Math.min(clamped[0], layout[0]-1), 0);
         clamped[1] = Math.max(Math.min(clamped[1], layout[1]-1), 0);
+        item.cell = redirectCell(clamped, args)
+        //doAnimate(newItem, );
 
         //
-        const cell = redirectCell(clamped, args);
-        const prev = [item.cell[0], item.cell[1]];
-
-        //
-        setProperty(newItem, "--cell-x", cell[0]);
-        setProperty(newItem, "--cell-y", cell[1]);
-
-        //
-        const animation = newItem.animate(animationSequence([
-            parseInt(newItem.style.getPropertyValue("--drag-x")),
-            parseInt(newItem.style.getPropertyValue("--drag-y"))
-        ], item.cell, cell), {
-            fill: "both",
-            duration: 150,
-            easing: "linear"
-        });
-
-        //
-        let shifted = false;
-        const onShift: [any, any] = [(ev)=>{
-            if (!shifted) {
-                shifted = true;
-                //animation?.commitStyles?.();
-                animation?.cancel?.();
-            }
-
-            //
-            newItem?.removeEventListener?.("m-dragstart", ...onShift);
-        }, {once: true}];
-
-        // not fact, but for animation
-        setProperty(newItem, "--p-cell-x", prev[0]);
-        setProperty(newItem, "--p-cell-y", prev[1]);
-
-        //
-        newItem?.addEventListener?.("m-dragstart", ...onShift);
-        //await new Promise((r)=>requestAnimationFrame(r));
-        await animation?.finished?.catch?.(console.warn.bind(console));
-
-        //
-        if (!shifted) {
-            // commit dragging result
-            item.cell = cell;
-            onShift?.[0]?.();
-
-            //
-            setProperty(newItem, "--p-cell-x", item.cell[0]);
-            setProperty(newItem, "--p-cell-y", item.cell[1]);
-
-            //
-            if (ev?.detail?.holding?.modified != null) {
-                setProperty(newItem, "--drag-x", ev.detail.holding.modified[0] = 0);
-                setProperty(newItem, "--drag-y", ev.detail.holding.modified[1] = 0);
-            } else {
-                setProperty(newItem, "--drag-x", 0);
-                setProperty(newItem, "--drag-y", 0);
-            }
-
-            //
-            delete newItem.dataset.dragging;
-        }
+        //await doAnimate(newItem, item.cell = redirectCell(clamped, args));
     });
 }
 
